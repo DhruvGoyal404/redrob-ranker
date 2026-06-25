@@ -1,26 +1,26 @@
 # Redrob Hackathon — Submission Metadata
 # Mirrors the portal metadata. Stage-3 review verifies this against the portal.
 
-team_name: "TODO-your-team-name"   # <-- set to your registered team name
+team_name: "Team Paradise"
 
 primary_contact:
   name: "Dhruv Goyal"
   email: "dhruv621999goyal@gmail.com"
-  phone: "+91-XXXXXXXXXX"           # <-- fill before submitting
+  phone: "+91-8858880050"
 
 team_members:
   - name: "Dhruv Goyal"
     email: "dhruv621999goyal@gmail.com"
     role: "Team Lead / ML Engineer"
-  - name: "Vaani"                    # <-- full name + email
-    email: "TODO@example.com"
+  - name: "Vaani Prashar"
+    email: "vprashar_be23@thapar.edu"
     role: "Data / Evaluation"
 
 # ============================================================================
 # Code and reproducibility
 # ============================================================================
-github_repo: "https://github.com/TODO/redrob-ranker"     # <-- set after pushing
-sandbox_link: "https://TODO.streamlit.app"               # <-- set after deploy
+github_repo: "https://github.com/DhruvGoyal404/redrob-ranker"
+sandbox_link: "https://redrob-rankers-indiaruns.streamlit.app/"
 
 reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv"
 
@@ -28,15 +28,15 @@ reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submi
 # Compute environment (ranking step)
 # ============================================================================
 compute:
-  platform: "Local Windows 11 / WSL — CPU"
-  cpu_cores: 8
+  platform: "Windows 11, 12-core CPU (ranking); offline embeddings on an A100 GPU"
+  cpu_cores: 12
   ram_gb: 16
   python_version: "3.13"
   os: "Windows 11"
-  uses_gpu_for_inference: false       # ranking is CPU-only
+  uses_gpu_for_inference: false       # ranking is CPU-only (GPU used ONLY for offline embedding precompute)
   has_network_during_ranking: false   # no API calls during ranking
   pre_computation_required: true      # embeddings built offline by precompute.py
-  pre_computation_time_minutes: 10    # approx, one-time, CPU
+  pre_computation_time_minutes: 4     # bge-small over 100K profiles on one A100 (~3 min)
 
 # ============================================================================
 # AI tools declaration (honest — not penalized)

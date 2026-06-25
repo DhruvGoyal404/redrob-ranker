@@ -16,7 +16,7 @@ AI keywords into their skills list.
 
 ## The magic moment (live demo)
 
-**Sandbox:** _<set in submission_metadata.yaml after deploy>_ (Streamlit Community Cloud)
+**Sandbox:** https://redrob-rankers-indiaruns.streamlit.app/ (Streamlit Community Cloud)
 
 Paste a JD → drop in a candidate sample → watch a ranked, **explained** shortlist
 appear, each row with a confidence tag, the specific evidence behind it, honest

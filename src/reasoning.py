@@ -120,11 +120,38 @@ def build_reasoning(rec: dict, scored: Dict, trap: Dict, rank: int,
         if concern:
             sent += f" Concern: {concern}."
 
-    if counterfactual:
-        cf = _counterfactual(rec, scored)
-        if cf:
-            sent += f" {cf}"
+    # Tone must scale with rank (Stage-4 check). Beyond the clear top tier, add an
+    # honest "ranked here rather than higher because ..." note derived from this
+    # candidate's own weakest dimension — keeps confident candidates from all
+    # reading identically and acknowledges relative standing without faking doubt.
+    note = ""
+    if rank > 20:
+        note = _relative_standing(rec, scored)
+    elif counterfactual:
+        note = _counterfactual(rec, scored)
+    if note:
+        sent += f" {note}"
     return sent.strip()
+
+
+def _relative_standing(rec: dict, scored: Dict) -> str:
+    """Name the weakest actionable dimension that keeps an otherwise-strong
+    candidate from ranking higher. Honest and candidate-specific."""
+    c = scored["components"]
+    mods = scored["modifiers"]
+    yoe = rec["yoe"]
+    if c["must_have_coverage"] < 1.0:
+        return "Ranked here rather than higher: doesn't yet evidence every JD must-have (e.g. ranking-evaluation depth)."
+    if c["experience_band"] < 0.9:
+        side = "below" if yoe < 6 else "above"
+        return f"Ranked here rather than higher: {yoe:.1f}y sits {side} the 6–8y sweet spot."
+    if c["domain_evidence"] < 0.7:
+        return "Ranked here rather than higher: retrieval/ranking evidence is solid but thinner than the top tier."
+    if mods.get("availability", 1.0) < 0.95:
+        return "Ranked here rather than higher: availability signals (recruiter response / recency) are a notch lower."
+    if c["skill_trust"] < 0.5:
+        return "Ranked here rather than higher: skills are less corroborated by platform assessments."
+    return "Ranked here rather than higher: edged out by candidates above with deeper retrieval/ranking track records."
 
 
 def _counterfactual(rec: dict, scored: Dict) -> str:
