@@ -10,6 +10,7 @@ install:
 	pip install -r requirements.txt
 
 precompute:        ## Offline embeddings (GPU-friendly; may exceed 5 min)
+	pip install -r requirements-precompute.txt
 	python precompute.py --candidates $(CAND) --artifacts $(ART)
 
 rank:              ## Produce submission.csv (CPU-only, < 5 min)

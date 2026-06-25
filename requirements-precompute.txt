@@ -1,0 +1,4 @@
+# Heavy dependencies for the OFFLINE embedding precompute (precompute.py) and the
+# optional semantic toggle in the demo. Not needed by rank.py or the default demo.
+# Install on top of requirements.txt:  pip install -r requirements-precompute.txt
+sentence-transformers>=2.2

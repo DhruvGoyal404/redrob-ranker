@@ -118,9 +118,13 @@ def run_ranking(records, jd_text, use_semantic):
     narratives = [r["narrative"] for r in records]
     doc_emb = jd_emb = None
     if use_semantic:
-        model = get_model()
-        doc_emb = model.encode(narratives, normalize_embeddings=True, convert_to_numpy=True)
-        jd_emb = model.encode([jd_text], normalize_embeddings=True, convert_to_numpy=True)
+        try:
+            model = get_model()
+            doc_emb = model.encode(narratives, normalize_embeddings=True, convert_to_numpy=True)
+            jd_emb = model.encode([jd_text], normalize_embeddings=True, convert_to_numpy=True)
+        except Exception:
+            st.warning("Semantic embeddings need PyTorch, which is not installed on this "
+                       "lightweight host. Ranking with BM25 + the signal scorer instead.")
     idx, dense_norm = retrieve.shortlist(narratives, jd_text, doc_emb, jd_emb, size=len(records))
     rows = []
     for i in idx:
@@ -158,14 +162,12 @@ with st.sidebar:
     uploaded = st.file_uploader("Candidate sample (.json or .jsonl)", type=["json", "jsonl"])
     top_n = st.slider("Show top N", 5, 50, 15)
 
-# JD presets (set the text area value before the widget is instantiated).
-st.session_state.setdefault("jd_text", PRESETS[DEFAULT_PRESET])
-st.write("**Try a job description:**")
-cols = st.columns(len(PRESETS))
-for col, (label, text) in zip(cols, PRESETS.items()):
-    if col.button(label, use_container_width=True):
-        st.session_state.jd_text = text
-jd_text = st.text_area("Job description / query", key="jd_text", height=150)
+# JD presets: a selectbox loads a preset into the text area; the user can then edit
+# it freely. (Kept deliberately simple - no session_state/widget-key juggling.)
+preset_name = st.selectbox("Try a job description (pick one, then edit if you like)",
+                           list(PRESETS.keys()),
+                           index=list(PRESETS).index(DEFAULT_PRESET))
+jd_text = st.text_area("Job description / query", PRESETS[preset_name], height=150)
 
 if st.button("⚡ Rank candidates", type="primary"):
     records = load_records(uploaded, inject_stuffer)

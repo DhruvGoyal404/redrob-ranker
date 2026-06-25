@@ -81,7 +81,10 @@ stuffers ×0.05.
 ```bash
 pip install -r requirements.txt
 
-# One-time offline pre-computation (embeddings cache; may exceed 5 min, CPU OK)
+# One-time offline pre-computation (embeddings cache; may exceed 5 min, GPU OK).
+# Needs the heavy deps (torch/sentence-transformers), kept separate so the ranker
+# and the demo stay light:
+pip install -r requirements-precompute.txt
 python precompute.py --candidates ./candidates.jsonl --artifacts ./artifacts
 
 # The ranking step - CPU-only, no network, < 5 min, < 16 GB  (Stage-3 command)
