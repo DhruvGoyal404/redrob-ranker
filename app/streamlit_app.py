@@ -87,7 +87,11 @@ with st.sidebar:
         "disqualifier modifiers.\n"
         "4. **Grounded reasoning** — facts from the profile + confidence + concerns."
     )
-    use_semantic = st.checkbox("Use semantic embeddings (bge-small)", value=True)
+    use_semantic = st.checkbox(
+        "Use semantic embeddings (bge-small)", value=False,
+        help="Off by default for reliability on free 1 GB hosting. Turn on to add "
+             "the dense layer (loads PyTorch — heavier). The full ranker still runs "
+             "via BM25 + the signal scorer when off.")
     uploaded = st.file_uploader("Candidate sample (.json or .jsonl)", type=["json", "jsonl"])
     top_n = st.slider("Show top N", 5, 50, 15)
 

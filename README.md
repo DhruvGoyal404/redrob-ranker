@@ -107,7 +107,7 @@ gracefully to a BM25-only ranking so the pipeline always runs.
 
 | Constraint | Limit | This pipeline |
 |---|---|---|
-| Runtime (ranking) | ≤ 5 min | **~122 s** on a 12-core laptop CPU (load 68 s + retrieval/score 54 s) |
+| Runtime (ranking) | ≤ 5 min | **~85 s** on a 12-core laptop CPU (well under 2 min; ~120 s on a cold disk cache) |
 | Memory | ≤ 16 GB | well under (streaming parse; ~2 GB peak) |
 | Compute | CPU only | yes — no GPU, no torch at ranking time |
 | Network | off | yes — no API calls; vectors precomputed |
@@ -128,8 +128,8 @@ each is worth:
 - **Silver-proxy NDCG/MAP/P@k — independent sanity check** (`eval/`): the relevance
   grade *within* the eligible band comes from **held-out recruiter-demand signals the
   ranker never uses as features** (`saved_by_recruiters`, `search_appearance`,
-  `profile_views`), so it is not circular with our scoring. NDCG@10 **0.972**, NDCG@50
-  **0.977**, MAP **1.00**, P@10 **1.00** (composite **0.979**). Honestly imperfect —
+  `profile_views`), so it is not circular with our scoring. NDCG@10 **0.985**, NDCG@50
+  **0.981**, MAP **1.00**, P@10 **1.00** (composite **0.987**). Honestly imperfect —
   recruiter demand also reflects popularity, not only JD-fit — and disclosed as such.
 
 ```bash
