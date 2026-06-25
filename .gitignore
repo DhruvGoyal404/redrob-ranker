@@ -16,3 +16,4 @@ artifacts/*
 
 # The actual submission CSV is a build output; regenerate via rank.py.
 submission.csv
+team_paradise.csv
