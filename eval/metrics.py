@@ -4,7 +4,7 @@ Ranking metrics matching the challenge's scoring formula:
 where relevance is a graded tier (0..5) and "relevant" = tier >= 3.
 
 These run against a *self-built* relevance proxy (see build_silver_labels), NOT
-the hidden ground truth — so they are a sanity signal, honestly disclosed, not a
+the hidden ground truth - so they are a sanity signal, honestly disclosed, not a
 claim of true score.
 """
 from __future__ import annotations

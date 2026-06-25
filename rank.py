@@ -1,5 +1,5 @@
 """
-rank.py — produce submission.csv from candidates.jsonl.
+rank.py - produce submission.csv from candidates.jsonl.
 
 This is the single Stage-3 reproduce command. It is CPU-only, makes no network
 calls, imports no torch / sentence-transformers, and runs well within the

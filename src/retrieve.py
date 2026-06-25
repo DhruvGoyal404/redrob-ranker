@@ -4,7 +4,7 @@ Fusion (RRF, k=60). Produces a high-recall shortlist that the scorer then ranks
 in detail.
 
 At ranking time this module imports NO torch / sentence-transformers and makes
-NO network calls — dense vectors are loaded from the precomputed cache and the
+NO network calls - dense vectors are loaded from the precomputed cache and the
 JD vector is precomputed too. BM25 is rebuilt from the narratives in-process
 (pure-python rank_bm25), which is fast and keeps the cache small.
 """

@@ -2,7 +2,7 @@
 Grounded reasoning generation.
 
 Every reasoning string is assembled from facts that actually exist in the
-candidate's profile and from the scorer's own per-component breakdown — never
+candidate's profile and from the scorer's own per-component breakdown - never
 from an LLM at ranking time. This guarantees the Stage-4 review checks pass:
 specific facts, JD connection, honest concerns, no hallucination, variation,
 and tone that matches the rank. Borderline candidates also get a counterfactual.
@@ -57,7 +57,7 @@ def confidence_tag(scored: Dict, trap: Dict) -> str:
 
 
 def _concern(rec: dict, scored: Dict, trap: Dict) -> str:
-    """One honest concern, if any — Stage-4 rewards acknowledging gaps."""
+    """One honest concern, if any - Stage-4 rewards acknowledging gaps."""
     c = scored["components"]
     sig = rec["signals"]
     if trap["is_stuffer"]:
@@ -109,20 +109,20 @@ def build_reasoning(rec: dict, scored: Dict, trap: Dict, rank: int,
 
     concern = _concern(rec, scored, trap)
     if conf == "High":
-        sent = f"{conf} confidence — {lead}{lead_extra}."
+        sent = f"{conf} confidence - {lead}{lead_extra}."
         if concern:
             sent += f" Minor concern: {concern}."
     elif conf == "Low":
-        sent = f"{conf} confidence — {lead}{lead_extra}."
+        sent = f"{conf} confidence - {lead}{lead_extra}."
         sent += f" {concern[0].upper()}{concern[1:]}." if concern else " Adjacent fit only."
     else:
-        sent = f"{conf} confidence — {lead}{lead_extra}."
+        sent = f"{conf} confidence - {lead}{lead_extra}."
         if concern:
             sent += f" Concern: {concern}."
 
     # Tone must scale with rank (Stage-4 check). Beyond the clear top tier, add an
     # honest "ranked here rather than higher because ..." note derived from this
-    # candidate's own weakest dimension — keeps confident candidates from all
+    # candidate's own weakest dimension - keeps confident candidates from all
     # reading identically and acknowledges relative standing without faking doubt.
     note = ""
     if rank > 20:
@@ -144,7 +144,7 @@ def _relative_standing(rec: dict, scored: Dict) -> str:
         return "Ranked here rather than higher: doesn't yet evidence every JD must-have (e.g. ranking-evaluation depth)."
     if c["experience_band"] < 0.9:
         side = "below" if yoe < 6 else "above"
-        return f"Ranked here rather than higher: {yoe:.1f}y sits {side} the 6–8y sweet spot."
+        return f"Ranked here rather than higher: {yoe:.1f}y sits {side} the 6-8y sweet spot."
     if c["domain_evidence"] < 0.7:
         return "Ranked here rather than higher: retrieval/ranking evidence is solid but thinner than the top tier."
     if mods.get("availability", 1.0) < 0.95:

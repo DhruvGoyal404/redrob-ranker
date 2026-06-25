@@ -1,0 +1,5 @@
+# Minimal dependencies for the RANKING step only (rank.py).
+# CPU-only, no torch, no network. Used by the Docker image so Stage-3 reproduction
+# is small and fast. Full dev/precompute/demo deps are in requirements.txt.
+numpy==2.4.4
+rank-bm25==0.2.2

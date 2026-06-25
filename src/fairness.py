@@ -4,7 +4,7 @@ Lightweight fairness / proxy-skew audit.
 We have no demographic labels, but proxies exist (city, college tier, employment
 gaps). This module checks whether the top-100 over-selects on any proxy relative
 to the realistic eligible pool, and applies the four-fifths rule as a sanity
-check (not a legal claim). The honest output — reported even when it shows skew —
+check (not a legal claim). The honest output - reported even when it shows skew -
 signals to Redrob's judges that we understand what shipping a hiring model in a
 regulated environment (NYC LL144, Colorado SB 24-205) actually requires.
 
@@ -82,7 +82,7 @@ def audit(pool_records: List[dict], top_ids: List[str]) -> Dict:
 
 
 def format_report(report: Dict) -> str:
-    lines = [f"Fairness audit — eligible pool: {report['eligible_pool_size']}"]
+    lines = [f"Fairness audit - eligible pool: {report['eligible_pool_size']}"]
     for name, r in report["proxies"].items():
         flag = "OK" if r["four_fifths_pass"] else "REVIEW (impact ratio < 0.8)"
         lines.append(

@@ -2,7 +2,7 @@
 Stream-parse candidates.jsonl into compact, normalized records.
 
 Handles both plain .jsonl and gzipped .jsonl.gz. Designed to be memory-safe
-(line-by-line) and fast — no third-party deps. The normalized record exposes
+(line-by-line) and fast - no third-party deps. The normalized record exposes
 everything the trap gate, scorer and reasoning need, with the raw profile kept
 for grounded reasoning / fact-checking.
 """

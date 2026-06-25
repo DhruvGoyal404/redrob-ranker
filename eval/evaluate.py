@@ -1,5 +1,5 @@
 """
-Self-evaluation harness — run after producing submission.csv.
+Self-evaluation harness - run after producing submission.csv.
 
 Reports two things:
 
@@ -43,7 +43,7 @@ def build_silver_labels(rec: dict, trap: dict, p50: float, p80: float) -> int:
     Eligibility (title/trap) comes from the profile, but the *grade within the
     eligible band* comes from held-out recruiter-demand signals the ranker does
     not see. So a high NDCG here means our ordering agrees with how recruiters
-    actually engaged — an independent check, honestly imperfect (demand also
+    actually engaged - an independent check, honestly imperfect (demand also
     reflects popularity, not only JD-fit), disclosed as such."""
     if trap["is_honeypot"] or trap["is_stuffer"]:
         return 0

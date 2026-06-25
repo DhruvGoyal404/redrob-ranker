@@ -1,0 +1,17 @@
+.git
+.github
+__pycache__
+*.pyc
+.venv
+venv
+artifacts/embeddings.npy
+artifacts/*.npy
+candidates.jsonl
+candidates.jsonl.gz
+data
+app
+eval
+tests
+*.csv
+*.md
+.DS_Store

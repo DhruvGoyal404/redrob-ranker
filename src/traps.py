@@ -1,10 +1,10 @@
 """
-Validity / trap gate — runs FIRST, highest ROI.
+Validity / trap gate - runs FIRST, highest ROI.
 
 Two jobs:
   1. honeypot detection: subtly *impossible* profiles (the spec's tier-0 set).
      Only clear internal contradictions are flagged, so we never demote a real
-     candidate by accident (precision over recall — a missed honeypot just needs
+     candidate by accident (precision over recall - a missed honeypot just needs
      to lose on merit; a false positive ejects a genuine top-100 pick).
   2. keyword-stuffer detection: non-technical title + AI skills with no
      corroborating work evidence (the JD's "Marketing Manager with every AI
@@ -32,7 +32,7 @@ def honeypot_reasons(rec: dict) -> List[str]:
             reasons.append("expert_skill_with_zero_months")
             break
 
-    # NOTE: we deliberately do NOT flag "skill months > career months" — in this
+    # NOTE: we deliberately do NOT flag "skill months > career months" - in this
     # synthetic dataset skill durations are assigned independently of career length
     # for normal profiles (~9% of the pool), so it is noise, not an impossibility.
     # The exception (expert proficiency + huge duration on zero-experience) is

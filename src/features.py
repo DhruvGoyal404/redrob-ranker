@@ -1,5 +1,5 @@
 """
-Shared feature extraction — term matching used by the trap gate, the scorer and
+Shared feature extraction - term matching used by the trap gate, the scorer and
 the reasoning generator so all three read the profile the same way.
 """
 from __future__ import annotations
@@ -69,7 +69,7 @@ def evidence_groups(rec: dict) -> Dict[str, int]:
 
 
 def skill_evidence_groups(rec: dict) -> Set[str]:
-    """Evidence groups that appear as *genuinely assessed* skills — an AI/IR skill
+    """Evidence groups that appear as *genuinely assessed* skills - an AI/IR skill
     with a real Redrob assessment score >= 60. Self-reported duration alone does
     NOT count as backing (stuffers fake duration); the platform assessment is the
     trustworthy signal per redrob_signals_doc."""
@@ -101,7 +101,7 @@ def ai_skill_count(rec: dict) -> int:
 
 def consulting_only(rec: dict) -> bool:
     """True if every company in the career history is an IT-services/consulting
-    firm (JD explicit disqualifier) — and there is at least one job."""
+    firm (JD explicit disqualifier) - and there is at least one job."""
     if not rec["companies"]:
         return False
     def is_consult(c):
@@ -120,7 +120,7 @@ def location_class(rec: dict) -> str:
 
 def has_relevant_or_adjacent_role(rec: dict) -> bool:
     """True if any role in the career history (or the current title) is a
-    relevant or adjacent technical title — i.e. the person has actually held an
+    relevant or adjacent technical title - i.e. the person has actually held an
     ML/SWE-type role at some point, not just listed skills."""
     titles = [rec["title_lower"]] + [c["title_lower"] for c in rec["career"]]
     for t in titles:

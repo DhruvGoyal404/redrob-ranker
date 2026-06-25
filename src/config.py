@@ -1,10 +1,10 @@
 """
-Central configuration for the Redrob "Senior AI Engineer — Founding Team" ranker.
+Central configuration for the Redrob "Senior AI Engineer - Founding Team" ranker.
 
 Everything role-specific lives here so the scoring is transparent and tunable in
 one place. This mirrors the released job_description.docx as directly as possible:
-the JD tells us its real must-haves, its explicit disqualifiers, and — in its note
-to hackathon participants — that the right answer is *evidence of retrieval/ranking
+the JD tells us its real must-haves, its explicit disqualifiers, and - in its note
+to hackathon participants - that the right answer is *evidence of retrieval/ranking
 work*, not the presence of AI keywords. We encode exactly that.
 
 All term lists are matched case-insensitively against normalized text.
@@ -21,7 +21,7 @@ RELEVANT_TITLE_TERMS = [
     "ai specialist", "deep learning",
 ]
 
-# Adjacent software titles — relevant *only if* they show retrieval/ranking
+# Adjacent software titles - relevant *only if* they show retrieval/ranking
 # evidence in their history; not relevant on the title alone.
 ADJACENT_TITLE_TERMS = [
     "software engineer", "backend engineer", "data engineer", "analytics engineer",
@@ -41,7 +41,7 @@ NONTECH_TITLE_TERMS = [
 OFFDOMAIN_TITLE_TERMS = ["computer vision", "cv engineer", "speech", "robotics"]
 
 # --------------------------------------------------------------------------- #
-# Domain evidence vocabulary — used to read *what work was actually done* from
+# Domain evidence vocabulary - used to read *what work was actually done* from
 # career-history descriptions, skills, and assessments (not just skill names).
 # Grouped so we can credit breadth across sub-areas.
 # --------------------------------------------------------------------------- #
@@ -118,7 +118,7 @@ WELCOME_LOCATIONS = [
 ]
 
 # --------------------------------------------------------------------------- #
-# Scoring weights — additive base components (sum of weights = 1.0 before
+# Scoring weights - additive base components (sum of weights = 1.0 before
 # multiplicative modifiers). Documented & defensible for the Stage-5 interview.
 # --------------------------------------------------------------------------- #
 WEIGHTS = {

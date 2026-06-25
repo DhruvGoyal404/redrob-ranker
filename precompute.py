@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import os
 
-# Force the HuggingFace stack onto PyTorch only — a broken TensorFlow install is
+# Force the HuggingFace stack onto PyTorch only - a broken TensorFlow install is
 # present in this environment and transformers will otherwise try to import it.
 os.environ.setdefault("USE_TF", "0")
 os.environ.setdefault("USE_TORCH", "1")

@@ -1,5 +1,5 @@
 """
-Signal-based weighted scorer — the core ranker.
+Signal-based weighted scorer - the core ranker.
 
 Design principle (straight from the JD's note to participants): score on
 *demonstrated evidence of retrieval/ranking/applied-ML work*, not on the presence
@@ -20,7 +20,7 @@ _IR_GROUPS = ["retrieval_ranking", "embeddings", "vector_db", "nlp", "evaluation
 
 
 # --------------------------------------------------------------------------- #
-# Additive base components — each returns a value in [0, 1].
+# Additive base components - each returns a value in [0, 1].
 # --------------------------------------------------------------------------- #
 def _title_role_fit(rec: dict) -> float:
     base = {"relevant": 1.0, "adjacent": 0.6, "other": 0.35,

@@ -1,6 +1,6 @@
 # Contributing
 
-This is a hackathon submission for the **India Runs by Redrob AI — Track 1**
+This is a hackathon submission for the **India Runs by Redrob AI - Track 1**
 Intelligent Candidate Discovery & Ranking Challenge. It is primarily a competition
 entry, but contributions, issues, and suggestions are welcome.
 

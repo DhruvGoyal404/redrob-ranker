@@ -1,10 +1,23 @@
-# Ranking pipeline (CPU-only, no GPU, no network at ranking time)
-numpy>=1.24
-pandas>=2.0
-scikit-learn>=1.3
-rank-bm25>=0.2.2
-sentence-transformers>=2.2   # offline pre-computation only; not imported by rank.py
-PyYAML>=6.0
+# Full dev / precompute / demo dependencies.
+#
+# The RANKING step (rank.py) needs only the light subset below (numpy + rank-bm25);
+# see requirements-rank.txt, which the Docker image installs for a small, fast,
+# CPU-only, no-network Stage-3 reproduction. torch / sentence-transformers are used
+# ONLY by the offline precompute and the optional semantic toggle in the demo, never
+# by rank.py.
 
-# Demo / sandbox
+# --- core ranking (deterministic, pinned) ---
+numpy>=2.0,<3
+rank-bm25==0.2.2
+
+# --- eval / fairness / demo data handling ---
+pandas==2.3.2
+scikit-learn==1.6.1
+PyYAML==6.0.3
+
+# --- offline precompute + optional demo semantic layer (heavy, platform-specific:
+#     left as minimum versions so Linux/Streamlit-Cloud installs resolve cleanly) ---
+sentence-transformers>=2.2
+
+# --- demo / sandbox ---
 streamlit>=1.30

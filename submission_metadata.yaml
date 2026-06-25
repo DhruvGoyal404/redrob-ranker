@@ -1,4 +1,4 @@
-# Redrob Hackathon — Submission Metadata
+# Redrob Hackathon - Submission Metadata
 # Mirrors the portal metadata. Stage-3 review verifies this against the portal.
 
 team_name: "Team Paradise"
@@ -39,7 +39,7 @@ compute:
   pre_computation_time_minutes: 4     # bge-small over 100K profiles on one A100 (~3 min)
 
 # ============================================================================
-# AI tools declaration (honest — not penalized)
+# AI tools declaration (honest - not penalized)
 # ============================================================================
 ai_tools_used:
   - "Claude"
@@ -61,8 +61,8 @@ methodology_summary: |
   drives them to the bottom; (2) hybrid retrieval (BM25 + bge-small dense
   vectors fused with Reciprocal Rank Fusion) builds a high-recall shortlist;
   (3) a transparent 7-component weighted scorer rewards demonstrated
-  retrieval/ranking/applied-ML evidence from career history — not skill-name
-  presence — then applies multiplicative modifiers for availability
+  retrieval/ranking/applied-ML evidence from career history - not skill-name
+  presence - then applies multiplicative modifiers for availability
   (recruiter response, recency, open-to-work), location, and the JD's explicit
   disqualifiers (services-only, off-domain, title-hopping). Embeddings are
   precomputed offline; the ranking step is CPU-only, no-network, and runs well
