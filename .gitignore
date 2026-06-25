@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+.ipynb_checkpoints/
+
+# Large data — not committed; documented in README how to obtain
+candidates.jsonl
+candidates.jsonl.gz
+
+# Heavy precomputed artifacts (rebuildable via precompute.py, moved via Drive).
+# embeddings.npy is ~153 MB — over GitHub's 100 MB file limit — never commit it.
+artifacts/*
+!artifacts/.gitkeep
+
+# The actual submission CSV is a build output; regenerate via rank.py.
+submission.csv

@@ -1,0 +1,10 @@
+# Ranking pipeline (CPU-only, no GPU, no network at ranking time)
+numpy>=1.24
+pandas>=2.0
+scikit-learn>=1.3
+rank-bm25>=0.2.2
+sentence-transformers>=2.2   # offline pre-computation only; not imported by rank.py
+PyYAML>=6.0
+
+# Demo / sandbox
+streamlit>=1.30

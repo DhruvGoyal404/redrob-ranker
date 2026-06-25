@@ -1,0 +1,80 @@
+# Redrob Hackathon — Submission Metadata
+# Mirrors the portal metadata. Stage-3 review verifies this against the portal.
+
+team_name: "TODO-your-team-name"   # <-- set to your registered team name
+
+primary_contact:
+  name: "Dhruv Goyal"
+  email: "dhruv621999goyal@gmail.com"
+  phone: "+91-XXXXXXXXXX"           # <-- fill before submitting
+
+team_members:
+  - name: "Dhruv Goyal"
+    email: "dhruv621999goyal@gmail.com"
+    role: "Team Lead / ML Engineer"
+  - name: "Vaani"                    # <-- full name + email
+    email: "TODO@example.com"
+    role: "Data / Evaluation"
+
+# ============================================================================
+# Code and reproducibility
+# ============================================================================
+github_repo: "https://github.com/TODO/redrob-ranker"     # <-- set after pushing
+sandbox_link: "https://TODO.streamlit.app"               # <-- set after deploy
+
+reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv"
+
+# ============================================================================
+# Compute environment (ranking step)
+# ============================================================================
+compute:
+  platform: "Local Windows 11 / WSL — CPU"
+  cpu_cores: 8
+  ram_gb: 16
+  python_version: "3.13"
+  os: "Windows 11"
+  uses_gpu_for_inference: false       # ranking is CPU-only
+  has_network_during_ranking: false   # no API calls during ranking
+  pre_computation_required: true      # embeddings built offline by precompute.py
+  pre_computation_time_minutes: 10    # approx, one-time, CPU
+
+# ============================================================================
+# AI tools declaration (honest — not penalized)
+# ============================================================================
+ai_tools_used:
+  - "Claude"
+
+ai_usage_summary: |
+  Used Claude (Claude Code) for architecture discussion, code review, and
+  pair-programming the pipeline. All design decisions, scoring weights, trap
+  heuristics and evaluation were authored and verified by the team against the
+  real dataset. No candidate data was sent to any hosted LLM, and no LLM is
+  called at ranking time (the constraint forbids it).
+
+# ============================================================================
+# Approach summary
+# ============================================================================
+methodology_summary: |
+  Evidence-based ranker, not a keyword matcher. Pipeline: (1) a validity gate
+  detects honeypots (internal-consistency rules) and keyword-stuffers
+  (non-technical title + AI skills with no corroborating work evidence) and
+  drives them to the bottom; (2) hybrid retrieval (BM25 + bge-small dense
+  vectors fused with Reciprocal Rank Fusion) builds a high-recall shortlist;
+  (3) a transparent 7-component weighted scorer rewards demonstrated
+  retrieval/ranking/applied-ML evidence from career history — not skill-name
+  presence — then applies multiplicative modifiers for availability
+  (recruiter response, recency, open-to-work), location, and the JD's explicit
+  disqualifiers (services-only, off-domain, title-hopping). Embeddings are
+  precomputed offline; the ranking step is CPU-only, no-network, and runs well
+  within 5 minutes. Reasoning is assembled from real profile facts with a
+  confidence tag and honest concerns. We also ship a four-fifths fairness audit.
+
+# ============================================================================
+# Declarations
+# ============================================================================
+declarations:
+  read_submission_spec: true
+  code_is_original_work: true
+  no_collusion: true
+  honeypot_check_done: true           # we explicitly detect + exclude honeypots
+  reproduction_tested: true
