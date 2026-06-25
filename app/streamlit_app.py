@@ -30,7 +30,15 @@ sys.path.insert(0, str(_ROOT / "app"))
 
 from src import config, parse, traps, retrieve, reasoning
 from src import score as scoring
-import presets as jd_presets
+
+# JD presets live in app/presets.py. Fall back to the single challenge JD if that
+# module is unavailable for any reason, so the demo always boots.
+try:
+    from presets import PRESETS, DEFAULT_PRESET
+except Exception:
+    from src.jd import JD_QUERY
+    PRESETS = {"Senior AI Engineer (challenge JD)": JD_QUERY}
+    DEFAULT_PRESET = "Senior AI Engineer (challenge JD)"
 
 st.set_page_config(page_title="Redrob Ranker", page_icon="🧭", layout="wide")
 REF = date.fromisoformat(config.REFERENCE_DATE)
@@ -151,10 +159,10 @@ with st.sidebar:
     top_n = st.slider("Show top N", 5, 50, 15)
 
 # JD presets (set the text area value before the widget is instantiated).
-st.session_state.setdefault("jd_text", jd_presets.PRESETS[jd_presets.DEFAULT_PRESET])
+st.session_state.setdefault("jd_text", PRESETS[DEFAULT_PRESET])
 st.write("**Try a job description:**")
-cols = st.columns(len(jd_presets.PRESETS))
-for col, (label, text) in zip(cols, jd_presets.PRESETS.items()):
+cols = st.columns(len(PRESETS))
+for col, (label, text) in zip(cols, PRESETS.items()):
     if col.button(label, use_container_width=True):
         st.session_state.jd_text = text
 jd_text = st.text_area("Job description / query", key="jd_text", height=150)
