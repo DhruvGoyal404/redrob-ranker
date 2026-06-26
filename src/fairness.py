@@ -130,13 +130,30 @@ def merit_gradient(pool_records: List[dict], attr_fn, top_ids: List[str]) -> Dic
                      "domain_evidence": sc["components"]["domain_evidence"],
                      "experience_band": sc["components"]["experience_band"],
                      "assessment": statistics.mean(av) if av else None})
+    import math
     rate = lambda sub: (100 * sum(x["attr"] for x in sub) / len(sub)) if sub else 0.0
     by_score = sorted(recs, key=lambda x: -x["score"])
     sel = set(top_ids)
+    p0 = sum(x["attr"] for x in recs) / len(recs)  # base rate as a fraction
+
+    def wilson(k, n, z=1.96):
+        p = k / n; d = 1 + z*z/n
+        c = (p + z*z/(2*n)) / d
+        h = z*math.sqrt(p*(1-p)/n + z*z/(4*n*n)) / d
+        return (round(100*max(0, c-h), 1), round(100*min(1, c+h), 1))
+
+    def chi2_vs_base(k, n):
+        e1, e0 = n*p0, n*(1-p0)
+        return round((k-e1)**2/e1 + ((n-k)-e0)**2/e0, 1)
+
     decomp = {}
     for sig in ("domain_evidence", "experience_band", "assessment"):
-        elig = [x for x in recs if x[sig] is not None]
-        decomp[sig] = {"n": len(elig), "top100_rate": rate(sorted(elig, key=lambda x: -x[sig])[:100])}
+        elig = sorted([x for x in recs if x[sig] is not None], key=lambda x: -x[sig])
+        cut = elig[:100]; k = sum(x["attr"] for x in cut)
+        bval = cut[-1][sig]
+        decomp[sig] = {"n_pool": len(elig), "tier1_in_top100": k,
+                       "ci95": wilson(k, 100), "chi2_vs_base": chi2_vs_base(k, 100),
+                       "n_at_or_above_boundary": sum(1 for x in elig if x[sig] >= bval)}
     return {"eligible": len(recs), "base_rate": rate(recs),
             "by_merit_rank": {k: rate(by_score[:k]) for k in (100, 250, 500, 1000)},
             "submitted_top": rate([x for x in recs if x["id"] in sel]),
@@ -170,13 +187,19 @@ def main():
         print(f"  submitted top-100: {g['submitted_top']:.1f}%  "
               f"(ranker adds nothing BEYOND its own features - but see decomposition)")
         d = g["by_signal_top100"]
-        print("\n[leakage] tier-1 rate in top-100 ranked by EACH signal in isolation:")
-        print(f"  domain_evidence (CV-text)        : {d['domain_evidence']['top100_rate']:.1f}%")
-        print(f"  experience_band (objective yoe)  : {d['experience_band']['top100_rate']:.1f}%")
-        print(f"  assessment score (objective test): {d['assessment']['top100_rate']:.1f}% "
-              f"(over {d['assessment']['n']} with assessments)")
-        print("  => if the CV-text signal concentrates tier-1 but objective tenure does not,"
-              "\n     the CV-text feature partially absorbs the proxy (included-variable bias).")
+        print("\n[leakage] tier-1 in top-100 ranked by EACH signal alone "
+              "(base 10.3%; chi-square>10.83 => p<0.001):")
+        for sig, label in (("domain_evidence", "domain_evidence (CV-text)     "),
+                           ("experience_band", "experience_band (objective)   "),
+                           ("assessment", "assessment score (objective)  ")):
+            s = d[sig]
+            sig_txt = "SIG" if s["chi2_vs_base"] > 10.83 else "n.s."
+            print(f"  {label}: {s['tier1_in_top100']}/100  95%CI {s['ci95']}  "
+                  f"chi2={s['chi2_vs_base']} ({sig_txt})  "
+                  f"[{s['n_at_or_above_boundary']} at/above the cut]")
+        print("  => domain_evidence (CV-text) concentrates tier-1 (significant) while objective"
+              "\n     tenure does not (n.s., CI spans base): the CV-text feature partially absorbs"
+              "\n     the proxy (included-variable bias) - flagged as an open limitation.")
 
 
 if __name__ == "__main__":

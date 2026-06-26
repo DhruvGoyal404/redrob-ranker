@@ -239,9 +239,13 @@ python -m src.fairness --candidates ./candidates.jsonl --submission ./submission
     tier-1 rate, which shows the ranker adds nothing **beyond its own features**. But that
     comparison is the pipeline vs itself, so on its own it is close to tautological.
   - *Signal decomposition (the test that actually matters)* - ranking the pool by each signal in
-    isolation, the tier-1 rate in the top-100 is **52% by `domain_evidence` (the CV-text feature)
-    but only ~9% by objective years-of-experience** and ~38% by platform assessment scores
-    (correlations with tier-1: domain_evidence **+0.25** >> assessment +0.08 >> tenure +0.01).
+    isolation, the tier-1 rate in the top-100 (base 10.3%) is **52/100 by `domain_evidence` (the
+    CV-text feature; 95% CI [42,62], chi-square 188 vs base, p<0.001), 9/100 by objective
+    years-of-experience (95% CI [5,16], chi-square 0.2 - not significant, CI spans the base), and
+    38/100 by platform assessment scores (CI [29,48], chi-square 83, p<0.001)**. The
+    domain-vs-experience contrast is itself significant (chi-square 43.6). (Tenure is heavily tied
+    - 5,016 candidates sit at the in-band max - so its 9% is a stable sample of that large cohort,
+    not a noisy slice. Correlations with tier-1: domain_evidence +0.25 >> assessment +0.08 >> tenure +0.01.)
   - **Honest conclusion:** the skew is driven mainly by `domain_evidence`, read from CV narrative
     text - exactly the feature most likely to absorb an elite-college access advantage
     (included-variable bias). We therefore **do not** claim the skew is cleanly merit-mediated; our
