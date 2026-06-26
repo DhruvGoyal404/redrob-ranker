@@ -91,3 +91,25 @@ def format_report(report: Dict) -> str:
             f"impact ratio {r['impact_ratio']} -> {flag}"
         )
     return "\n".join(lines)
+
+
+def main():
+    """Run the proxy-skew audit of a submission's top-100 against the eligible pool."""
+    import argparse
+    import csv
+    from . import parse, config
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--candidates", required=True)
+    ap.add_argument("--submission", default="./submission.csv")
+    args = ap.parse_args()
+    ref = date.fromisoformat(config.REFERENCE_DATE)
+    print(f"[fairness] loading pool from {args.candidates} ...")
+    pool = parse.load_all(args.candidates, ref)
+    with open(args.submission, encoding="utf-8") as f:
+        top_ids = [row["candidate_id"] for row in csv.DictReader(f)]
+    print(f"[fairness] auditing top-{len(top_ids)} vs pool of {len(pool)}\n")
+    print(format_report(audit(pool, top_ids)))
+
+
+if __name__ == "__main__":
+    main()

@@ -140,6 +140,13 @@ def run_ranking(records, jd_text, use_semantic):
 st.title("🧭 Redrob Intelligent Candidate Ranker")
 st.caption("Senior AI Engineer - Founding Team | evidence-based ranking, not keyword matching")
 
+st.info(
+    "**Note:** this hosted demo runs a lightweight **BM25 + signal-scorer** mode by default "
+    "(free 1 GB hosting can't load PyTorch). The submitted `submission.csv` was generated "
+    "offline with the **full hybrid (BM25 + dense embeddings)** pipeline, so the exact order "
+    "here can differ slightly from the submission. Tick *Use semantic embeddings* in the "
+    "sidebar to run the full pipeline (slower).", icon="ℹ️")
+
 with st.sidebar:
     st.header("How it works")
     st.markdown(

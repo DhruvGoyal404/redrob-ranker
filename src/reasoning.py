@@ -50,8 +50,11 @@ def confidence_tag(scored: Dict, trap: Dict) -> str:
     c = scored["components"]
     if trap["is_honeypot"]:
         return "Excluded"
-    strong = c["title_role_fit"] >= 0.8 and c["domain_evidence"] >= 0.45 \
-        and c["must_have_coverage"] >= 0.5
+    # "High" demands excellence across the board, not just a relevant title - so even
+    # within the submitted top-100 (all strong by construction) the tag still varies:
+    # a top pick that is off the 6-8y band or thinner on evidence reads "Moderate".
+    strong = (c["title_role_fit"] >= 0.8 and c["domain_evidence"] >= 0.6
+              and c["must_have_coverage"] >= 0.7 and c["experience_band"] >= 0.6)
     moderate = c["title_role_fit"] >= 0.55 or c["domain_evidence"] >= 0.3
     return "High" if strong else ("Moderate" if moderate else "Low")
 
@@ -140,8 +143,11 @@ def _relative_standing(rec: dict, scored: Dict) -> str:
     c = scored["components"]
     mods = scored["modifiers"]
     yoe = rec["yoe"]
-    if c["must_have_coverage"] < 1.0:
-        return "Ranked here rather than higher: doesn't yet evidence every JD must-have (e.g. ranking-evaluation depth)."
+    # Check the most specific / discriminating gaps FIRST. The must-have-coverage gap
+    # is checked last (and tightened to < 0.75): in a real pool almost nobody has
+    # *perfect* coverage, so if it were first it would swallow ~98% of candidates and
+    # starve the other clauses. This ordering surfaces the candidate's actual weakest
+    # dimension and gives genuine clause variety across a population.
     if c["experience_band"] < 0.9:
         side = "below" if yoe < 6 else "above"
         return f"Ranked here rather than higher: {yoe:.1f}y sits {side} the 6-8y sweet spot."
@@ -151,6 +157,8 @@ def _relative_standing(rec: dict, scored: Dict) -> str:
         return "Ranked here rather than higher: availability signals (recruiter response / recency) are a notch lower."
     if c["skill_trust"] < 0.5:
         return "Ranked here rather than higher: skills are less corroborated by platform assessments."
+    if c["must_have_coverage"] < 0.75:
+        return "Ranked here rather than higher: doesn't yet evidence every JD must-have (e.g. ranking-evaluation depth)."
     return "Ranked here rather than higher: edged out by candidates above with deeper retrieval/ranking track records."
 
 

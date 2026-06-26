@@ -27,6 +27,14 @@ appear, each row with a confidence tag, the specific evidence behind it, honest
 concerns, and any trap flags. Then open a candidate to see the full per-component
 score breakdown.
 
+> **Demo vs submission - read this.** The hosted demo defaults to a lightweight
+> **BM25 + signal-scorer** mode because free 1 GB hosting can't load PyTorch (a banner
+> in the app says so). The submitted `submission.csv` was generated **offline with the
+> full hybrid (BM25 + dense embeddings)** pipeline, so the exact order in the demo can
+> differ slightly from the submission. Tick *Use semantic embeddings* in the demo to run
+> the full pipeline. Locally, `streamlit run app/streamlit_app.py` with an `artifacts/`
+> cache present reproduces the hybrid order.
+
 ```bash
 streamlit run app/streamlit_app.py
 ```
@@ -198,13 +206,41 @@ local `ollama`), so the panel can be re-run and broadened.
 
 ### Fairness / proxy-skew audit (`src/fairness.py`)
 
-We have no demographic labels, but proxies exist (city, college tier, employment
-gaps). We check whether the top-100 over-selects on any proxy vs the eligible pool and
-apply the four-fifths rule as a sanity check. We deliberately **do not** use
-`education.tier` as a positive ranking feature and rely on demonstrated evidence
-instead. We report the audit honestly - including residual skew - rather than claiming
-"unbiased". This is what shipping a hiring model under NYC LL144 / Colorado SB 24-205
-actually requires.
+We have no demographic labels, but proxies exist (city, college tier, employment gaps).
+We check whether the top-100 over-selects on any proxy vs the realistic **eligible pool**
+(16,776 non-trap candidates who hold a relevant/adjacent technical role) and apply the
+four-fifths rule. Reproduce:
+
+```bash
+python -m src.fairness --candidates ./candidates.jsonl --submission ./submission.csv
+```
+
+**Actual output on our submitted top-100** (we report it honestly, skew and all - we do
+**not** claim "unbiased", which is itself a red flag):
+
+| Proxy | selected (with) | selected (without) | impact ratio | four-fifths |
+|---|---|---|---|---|
+| Preferred location (Pune/Noida) | 1.01% | 0.42% | 0.42 | REVIEW |
+| Tier-1 college | 2.89% | 0.33% | 0.115 | REVIEW |
+| Employment gap | 0.00% | 0.60% | 0.00 | REVIEW |
+
+All three flag for review, and here is the honest read of each:
+
+- **Location** - *intended, not a defect.* The JD explicitly prefers Noida/Pune (Redrob's
+  NCR offices) and we up-weight them; the skew is JD-fit, and relocation-willing candidates
+  are still credited.
+- **Tier-1 college** - *residual correlation, not a used feature.* We deliberately do **not**
+  use `education.tier` as a positive ranking signal. The skew arises because elite-college
+  graduates are over-represented among candidates with the genuine ML/IR careers we score on
+  - a property of the applicant pool, not of the model. **Flagged for human review.**
+- **Employment gap** - *the one we'd actually mitigate.* 0 of our top-100 have a >6-month gap
+  vs 0.60% of the eligible pool. This is a side effect of our recency/availability weighting
+  and could unfairly down-rank someone returning from a career break. **Mitigation:** relax
+  the recency penalty for otherwise-strong profiles and add a human-in-the-loop override -
+  flagged, not hidden.
+
+This is exactly what shipping a hiring model under NYC LL144 / Colorado SB 24-205 requires:
+transparent, monitored, human-in-the-loop - not a hollow "unbiased" claim.
 
 ---
 
