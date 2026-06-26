@@ -17,6 +17,9 @@ artifacts/*
 # The actual submission CSV is a build output; regenerate via rank.py.
 submission.csv
 paradise0211.csv
+paradise0211.xlsx
 
 artifacts.tgz
 *.tgz
+images/
+ranked_sample.csv

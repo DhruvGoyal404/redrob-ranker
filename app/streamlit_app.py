@@ -169,12 +169,17 @@ with st.sidebar:
     uploaded = st.file_uploader("Candidate sample (.json or .jsonl)", type=["json", "jsonl"])
     top_n = st.slider("Show top N", 5, 50, 15)
 
-# JD presets: a selectbox loads a preset into the text area; the user can then edit
-# it freely. (Kept deliberately simple - no session_state/widget-key juggling.)
-preset_name = st.selectbox("Try a job description (pick one, then edit if you like)",
-                           list(PRESETS.keys()),
-                           index=list(PRESETS).index(DEFAULT_PRESET))
-jd_text = st.text_area("Job description / query", PRESETS[preset_name], height=150)
+# This demo ranks for the challenge's single target role (the Senior AI Engineer JD).
+# Our signal scorer is TUNED to this role's must-haves (read from src/config.py), so we show
+# that JD honestly rather than imply the demo adapts to arbitrary roles - it does not, and
+# pretending so would be a different, weaker keyword ranker. Editing the text only shifts the
+# optional semantic-embeddings component (14% of the score), not the tuned signal scorer.
+jd_text = st.text_area(
+    'Target role we rank for - the challenge\'s "Senior AI Engineer, Founding Team" JD',
+    PRESETS[DEFAULT_PRESET], height=160)
+st.caption("Our signal scorer is tuned to this role's must-haves - that's the task. (Editing "
+           "the JD shifts only the optional semantic layer when it's enabled; the core ranking "
+           "targets this role.)")
 
 if st.button("⚡ Rank candidates", type="primary"):
     records = load_records(uploaded, inject_stuffer)

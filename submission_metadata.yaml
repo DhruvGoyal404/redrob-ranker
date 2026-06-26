@@ -15,6 +15,9 @@ team_members:
   - name: "Vaani Prashar"
     email: "vprashar_be23@thapar.edu"
     role: "Data / Evaluation"
+  - name: "Ishita Gupta"
+    email: "igupta3_be23@thapar.edu"
+    role: "Documentation / Review"
 
 # ============================================================================
 # Code and reproducibility
