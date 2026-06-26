@@ -53,15 +53,19 @@ def _selection_rates(eligible: List[dict], selected_ids: set, attr_fn) -> Dict:
     for v, (sel, elig) in grp.items():
         rates[v] = (sel / elig) if elig else 0.0
     pos, neg = rates[True], rates[False]
-    nonzero = [x for x in (pos, neg) if x > 0]
-    impact_ratio = (min(pos, neg) / max(pos, neg)) if nonzero and max(pos, neg) > 0 else None
+    # If nobody in the eligible pool carries (or lacks) the attribute, the four-fifths
+    # comparison is undefined - the proxy is NON-INFORMATIVE on this data, not a failure.
+    non_informative = (grp[True][1] == 0) or (grp[False][1] == 0)
+    impact_ratio = None if (non_informative or max(pos, neg) == 0) else min(pos, neg) / max(pos, neg)
     return {
         "rate_with_attr": round(pos, 4),
         "rate_without_attr": round(neg, 4),
-        "n_with_attr": grp[True][1],
+        "n_with_attr": grp[True][1],          # eligible candidates WITH the attribute
         "n_without_attr": grp[False][1],
+        "n_selected_with_attr": grp[True][0],  # of those, how many made the top-100
+        "non_informative": non_informative,
         "impact_ratio": round(impact_ratio, 3) if impact_ratio is not None else None,
-        "four_fifths_pass": (impact_ratio is None) or (impact_ratio >= 0.8),
+        "four_fifths_pass": non_informative or (impact_ratio is not None and impact_ratio >= 0.8),
     }
 
 
@@ -84,9 +88,14 @@ def audit(pool_records: List[dict], top_ids: List[str]) -> Dict:
 def format_report(report: Dict) -> str:
     lines = [f"Fairness audit - eligible pool: {report['eligible_pool_size']}"]
     for name, r in report["proxies"].items():
+        base = f"{r['n_with_attr']}/{report['eligible_pool_size']} eligible carry attr"
+        if r["non_informative"]:
+            lines.append(f"  {name}: {base} -> NON-INFORMATIVE on this data "
+                         f"(no comparison possible)")
+            continue
         flag = "OK" if r["four_fifths_pass"] else "REVIEW (impact ratio < 0.8)"
         lines.append(
-            f"  {name}: selection {r['rate_with_attr']:.2%} (with) vs "
+            f"  {name}: {base}; selection {r['rate_with_attr']:.2%} (with) vs "
             f"{r['rate_without_attr']:.2%} (without), "
             f"impact ratio {r['impact_ratio']} -> {flag}"
         )

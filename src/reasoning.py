@@ -138,28 +138,35 @@ def build_reasoning(rec: dict, scored: Dict, trap: Dict, rank: int,
 
 
 def _relative_standing(rec: dict, scored: Dict) -> str:
-    """Name the weakest actionable dimension that keeps an otherwise-strong
-    candidate from ranking higher. Honest and candidate-specific."""
+    """Surface the candidate's single WEAKEST dimension - the largest shortfall from
+    an ideal hire - rather than the first matching rule. Picking the max gap (not a
+    fixed priority order) keeps the clause honest *and* genuinely varied: different
+    candidates have different weakest dimensions, so no single clause monopolizes the
+    population the way a first-match chain does."""
     c = scored["components"]
     mods = scored["modifiers"]
     yoe = rec["yoe"]
-    # Check the most specific / discriminating gaps FIRST. The must-have-coverage gap
-    # is checked last (and tightened to < 0.75): in a real pool almost nobody has
-    # *perfect* coverage, so if it were first it would swallow ~98% of candidates and
-    # starve the other clauses. This ordering surfaces the candidate's actual weakest
-    # dimension and gives genuine clause variety across a population.
-    if c["experience_band"] < 0.9:
+    # Shortfalls normalized to a comparable 0..1 scale so the max is meaningful.
+    gaps = {
+        "experience": max(0.0, 0.9 - c["experience_band"]),
+        "domain": max(0.0, 0.8 - c["domain_evidence"]),
+        "availability": max(0.0, 0.95 - mods.get("availability", 1.0)) / 0.4,
+        "skill_trust": max(0.0, 0.6 - c["skill_trust"]),
+        "must_have": max(0.0, 0.85 - c["must_have_coverage"]),
+    }
+    worst = max(gaps, key=gaps.get)
+    if gaps[worst] < 0.05:
+        return "Ranked here rather than higher: edged out by candidates above with deeper retrieval/ranking track records."
+    if worst == "experience":
         side = "below" if yoe < 6 else "above"
         return f"Ranked here rather than higher: {yoe:.1f}y sits {side} the 6-8y sweet spot."
-    if c["domain_evidence"] < 0.7:
+    if worst == "domain":
         return "Ranked here rather than higher: retrieval/ranking evidence is solid but thinner than the top tier."
-    if mods.get("availability", 1.0) < 0.95:
+    if worst == "availability":
         return "Ranked here rather than higher: availability signals (recruiter response / recency) are a notch lower."
-    if c["skill_trust"] < 0.5:
+    if worst == "skill_trust":
         return "Ranked here rather than higher: skills are less corroborated by platform assessments."
-    if c["must_have_coverage"] < 0.75:
-        return "Ranked here rather than higher: doesn't yet evidence every JD must-have (e.g. ranking-evaluation depth)."
-    return "Ranked here rather than higher: edged out by candidates above with deeper retrieval/ranking track records."
+    return "Ranked here rather than higher: doesn't yet evidence every JD must-have (e.g. ranking-evaluation depth)."
 
 
 def _counterfactual(rec: dict, scored: Dict) -> str:

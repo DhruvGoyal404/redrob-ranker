@@ -126,7 +126,8 @@ Without the `artifacts` mount it still produces a valid BM25-only ranking. `make
 ### Tests
 
 ```bash
-python -m pytest -q     # trap detection, ranking metrics, word-boundary matching, pipeline smoke
+pip install -r requirements.txt -r requirements-dev.txt   # pytest lives in requirements-dev.txt
+python -m pytest -q   # trap detection, ranking metrics, word-boundary matching, pipeline smoke
 ```
 
 CI (`.github/workflows/ci.yml`) runs compile + tests on every push.
@@ -137,7 +138,7 @@ CI (`.github/workflows/ci.yml`) runs compile + tests on every push.
 
 | Constraint | Limit | This pipeline |
 |---|---|---|
-| Runtime (ranking) | ≤ 5 min | **~85 s** on a 12-core laptop CPU (well under 2 min; ~120 s on a cold disk cache) |
+| Runtime (ranking) | ≤ 5 min | **~81 s** on a 12-core laptop CPU when uncontended (measured); up to ~200 s under heavy concurrent CPU load - always well under the 5-min cap |
 | Memory | ≤ 16 GB | well under (streaming parse; ~2 GB peak) |
 | Compute | CPU only | yes - no GPU, no torch at ranking time |
 | Network | off | yes - no API calls; vectors precomputed |
@@ -216,28 +217,32 @@ python -m src.fairness --candidates ./candidates.jsonl --submission ./submission
 ```
 
 **Actual output on our submitted top-100** (we report it honestly, skew and all - we do
-**not** claim "unbiased", which is itself a red flag):
+**not** claim "unbiased", which is itself a red flag). `base` = how many of the 16,776
+eligible carry the attribute:
 
-| Proxy | selected (with) | selected (without) | impact ratio | four-fifths |
+| Proxy | eligible base | of top-100 | impact ratio | verdict |
 |---|---|---|---|---|
-| Preferred location (Pune/Noida) | 1.01% | 0.42% | 0.42 | REVIEW |
-| Tier-1 college | 2.89% | 0.33% | 0.115 | REVIEW |
-| Employment gap | 0.00% | 0.60% | 0.00 | REVIEW |
+| Preferred location (Pune/Noida) | 4,963 (29.6%) | 50/100 | 0.42 | REVIEW |
+| Tier-1 college | 1,730 (10.3%) | 50/100 | 0.115 | REVIEW |
+| Employment gap (>6 mo) | 0 (0.0%) | 0/100 | n/a | NON-INFORMATIVE |
 
-All three flag for review, and here is the honest read of each:
+Honest read of each:
 
 - **Location** - *intended, not a defect.* The JD explicitly prefers Noida/Pune (Redrob's
   NCR offices) and we up-weight them; the skew is JD-fit, and relocation-willing candidates
   are still credited.
-- **Tier-1 college** - *residual correlation, not a used feature.* We deliberately do **not**
-  use `education.tier` as a positive ranking signal. The skew arises because elite-college
-  graduates are over-represented among candidates with the genuine ML/IR careers we score on
-  - a property of the applicant pool, not of the model. **Flagged for human review.**
-- **Employment gap** - *the one we'd actually mitigate.* 0 of our top-100 have a >6-month gap
-  vs 0.60% of the eligible pool. This is a side effect of our recency/availability weighting
-  and could unfairly down-rank someone returning from a career break. **Mitigation:** relax
-  the recency penalty for otherwise-strong profiles and add a human-in-the-loop override -
-  flagged, not hidden.
+- **Tier-1 college** - *real, and it's a residual correlation, not a used feature.* **50 of our
+  100 are tier-1-college vs a 10.3% base rate** - a ~5x over-selection. We deliberately do
+  **not** use `education.tier` as a positive ranking signal; the skew arises because
+  elite-college graduates are over-represented among candidates with the genuine ML/IR careers
+  we score on. It is a property of the applicant pool, but the magnitude is large enough that
+  we **flag it explicitly for human review** rather than wave it away.
+- **Employment gap** - *non-informative on this dataset, and we say so rather than fake a
+  finding.* The `_has_gap` proxy fires on **0 of the 16,776 eligible candidates** (the
+  synthetic career histories are effectively gap-free), so "0/100 in the top-100" carries no
+  signal - there is nobody with a gap to include or exclude. The audit code now reports this as
+  NON-INFORMATIVE instead of a misleading "REVIEW"; on real-world data this proxy would need
+  live monitoring (a career-break returner could be down-ranked by our recency weighting).
 
 This is exactly what shipping a hiring model under NYC LL144 / Colorado SB 24-205 requires:
 transparent, monitored, human-in-the-loop - not a hollow "unbiased" claim.

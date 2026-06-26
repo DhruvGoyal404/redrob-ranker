@@ -1,0 +1,4 @@
+# Test / dev dependencies (not needed to run the ranker or the demo).
+#   pip install -r requirements.txt -r requirements-dev.txt
+#   pytest
+pytest>=7.0
