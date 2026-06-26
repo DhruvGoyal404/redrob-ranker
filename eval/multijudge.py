@@ -91,7 +91,7 @@ class AnthropicJudge:
     def score(self, jd, rec, trap):
         f = profile_fields(rec); f["jd"] = jd
         msg = self.client.messages.create(
-            model=self.model, max_tokens=200, temperature=0, system=JUDGE_SYSTEM,
+            model=self.model, max_tokens=200, system=JUDGE_SYSTEM,
             messages=[{"role": "user", "content": JUDGE_USER.format(**f)}])
         return _parse_score(msg.content[0].text)
 
@@ -105,7 +105,7 @@ class OpenAIJudge:
     def score(self, jd, rec, trap):
         f = profile_fields(rec); f["jd"] = jd
         r = self.client.chat.completions.create(
-            model=self.model, temperature=0, max_tokens=200,
+            model=self.model, max_tokens=200,
             messages=[{"role": "system", "content": JUDGE_SYSTEM},
                       {"role": "user", "content": JUDGE_USER.format(**f)}])
         return _parse_score(r.choices[0].message.content)
@@ -169,23 +169,31 @@ def make_panel(specs):
 
 # ----------------------------------------------------------------------------- sampling
 def stratified_sample(by_id, n, seed):
-    """Pick a sample that spans the difficulty range: clearly-relevant, adjacent,
-    traps, and irrelevant - so the gold set actually exercises the ranker."""
+    """Build an INFORMATIVE gold sample that spans the full 0-5 range:
+      - our own TOP signal-ranked candidates (so the panel can confirm/refute our
+        best picks - the candidates that actually matter),
+      - known traps (honeypots/stuffers, which should score low),
+      - random mid / other candidates for spread.
+    Random title-bucket sampling alone misses our genuinely strong picks (rare in
+    a 100K pool), leaving the gold compressed at the bottom."""
     rng = random.Random(seed)
-    buckets = {"relevant": [], "adjacent": [], "trap": [], "other": []}
+    traps_ids, rel_adj, others = [], [], []
     for cid, (rec, trap) in by_id.items():
         if trap["is_honeypot"] or trap["is_stuffer"]:
-            buckets["trap"].append(cid)
+            traps_ids.append(cid)
+        elif features.title_class(rec) in ("relevant", "adjacent"):
+            rel_adj.append(cid)
         else:
-            tc = features.title_class(rec)
-            buckets["relevant" if tc == "relevant" else
-                    "adjacent" if tc == "adjacent" else "other"].append(cid)
-    quota = {"relevant": round(0.40 * n), "adjacent": round(0.25 * n),
-             "trap": round(0.20 * n), "other": round(0.15 * n)}
-    picked = []
-    for k, q in quota.items():
-        rng.shuffle(buckets[k])
-        picked += buckets[k][:q]
+            others.append(cid)
+    ranked = [c for _, c in sorted(
+        ((scoring.score_candidate(by_id[c][0], by_id[c][1], 0.0)["final"], c) for c in rel_adj),
+        reverse=True)]
+    n_top, n_trap, n_mid = round(0.35 * n), round(0.20 * n), round(0.30 * n)
+    rng.shuffle(traps_ids); rng.shuffle(others)
+    mid_pool = ranked[n_top:]; rng.shuffle(mid_pool)
+    picked = ranked[:n_top] + traps_ids[:n_trap] + mid_pool[:n_mid]
+    picked += others[: max(0, n - len(picked))]
+    rng.shuffle(picked)
     return picked[:n]
 
 
