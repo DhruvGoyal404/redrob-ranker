@@ -230,18 +230,26 @@ python -m src.fairness --candidates ./candidates.jsonl --submission ./submission
 
 - **Location** - *intended, not a defect.* The JD explicitly prefers Noida/Pune (Redrob's
   NCR offices); relocation-willing candidates are still credited.
-- **Tier-1 college - a proxy-risk flag, framed precisely.** College tier is **not a protected
-  class** - it is a known *proxy* for protected attributes in India (e.g. elite-institute
-  cohorts historically skew on gender and caste). So our **50/100 vs a 10.3% base rate (~5x)
-  is a risk flag, not an adverse-impact finding**, because we never measured the actual
-  protected attributes. We also ran a **residual / merit-control test** (`--residual`): ranking
-  the eligible pool by the *tier-blind* signal score alone yields tier-1 rates of **50% (top-100)
-  → 44.8% (250) → 40.8% (500) → 35.4% (1000)**, and the top-100-by-merit rate (**50%**) **matches
-  our submitted top-100 (50%) exactly**. So the skew is **merit-mediated - our model injects no
-  extra tier bias**; it reproduces a correlation already present between elite institutions and
-  genuine ML/IR experience in this pool (chi-square 171, p<0.001, subgroups n=1,730 / 15,046, so
-  it is significant and not a small-sample artifact). That correlation may itself encode upstream
-  structural inequality, which is exactly why we flag it for human review rather than dismiss it.
+- **Tier-1 college - a proxy-risk flag, with an honest open limitation.** College tier is **not a
+  protected class** - it is a known *proxy* for protected attributes in India. So our **50/100 vs a
+  10.3% base rate (~5x) is a risk flag, not an adverse-impact finding** (chi-square 171, p<0.001,
+  subgroups n=1,730 / 15,046 - significant, not a small-sample artifact), because we never measured
+  the actual protected attributes. We ran two tests with `--residual`:
+  - *Residual gradient* - ranking by the tier-blind full signal score reproduces our exact 50%
+    tier-1 rate, which shows the ranker adds nothing **beyond its own features**. But that
+    comparison is the pipeline vs itself, so on its own it is close to tautological.
+  - *Signal decomposition (the test that actually matters)* - ranking the pool by each signal in
+    isolation, the tier-1 rate in the top-100 is **52% by `domain_evidence` (the CV-text feature)
+    but only ~9% by objective years-of-experience** and ~38% by platform assessment scores
+    (correlations with tier-1: domain_evidence **+0.25** >> assessment +0.08 >> tenure +0.01).
+  - **Honest conclusion:** the skew is driven mainly by `domain_evidence`, read from CV narrative
+    text - exactly the feature most likely to absorb an elite-college access advantage
+    (included-variable bias). We therefore **do not** claim the skew is cleanly merit-mediated; our
+    ranking does not *independently amplify* the tier-1 concentration beyond what our scoring inputs
+    encode, but we **cannot rule out that those inputs partially launder the same proxy**, and we
+    flag this as an **open limitation, not a closed question**. Mitigation directions: lean harder
+    on objective assessment scores relative to CV-text evidence, and audit against real protected
+    attributes in production.
 - **Employment gap - non-informative, and we say so rather than fake a finding.** The `_has_gap`
   proxy fires on **0 of the 16,776 eligible** (synthetic histories are gap-free), so "0/100"
   carries no signal - there is nobody with a gap to include or exclude. The code reports this as

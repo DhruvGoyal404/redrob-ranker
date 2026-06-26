@@ -103,26 +103,44 @@ def format_report(report: Dict) -> str:
 
 
 def merit_gradient(pool_records: List[dict], attr_fn, top_ids: List[str]) -> Dict:
-    """Residual test: does a proxy's over-selection SURVIVE controlling for the merit
-    signal we actually score on? We rank the eligible pool by the (tier-blind) signal
-    score and report the proxy rate as we climb it. If the top-k-by-merit rate matches
-    the submitted top-100 rate, the skew is merit-mediated (the model adds no extra
-    bias); the proxy is just correlated with genuine experience in this pool."""
+    """Residual + included-variable-bias test. Two things, in one pass over the pool:
+
+    (1) GRADIENT: rank the eligible pool by the (tier-blind) full signal score and
+        report the proxy rate as we climb it. A match with the submitted top-100 only
+        shows the ranker adds nothing *beyond its own features* - it does NOT prove the
+        skew is genuinely merit-driven (the comparison is the pipeline vs itself).
+
+    (2) DECOMPOSITION: rank the pool by each signal *in isolation* and report the proxy
+        rate in the top-100. If an objective signal (years of experience) shows no
+        concentration but a CV-text signal (domain_evidence) does, that CV-text feature
+        is the likely proxy carrier - the included-variable-bias the gradient can't see.
+    """
+    import statistics
     from . import traps, features
     from . import score as scoring
-    scored = []
+    recs = []
     for r in pool_records:
         tr = traps.assess(r)
         if tr["is_honeypot"] or not features.has_relevant_or_adjacent_role(r):
             continue
-        scored.append((scoring.score_candidate(r, tr, 0.0)["final"],
-                       bool(attr_fn(r)), r["candidate_id"]))
-    scored.sort(key=lambda x: -x[0])
-    selected = set(top_ids)
-    rate = lambda sub: (sum(1 for _, p, _ in sub if p) / len(sub)) if sub else 0.0
-    return {"eligible": len(scored), "base_rate": rate(scored),
-            "by_merit_rank": {k: rate(scored[:k]) for k in (100, 250, 500, 1000)},
-            "submitted_top": rate([x for x in scored if x[2] in selected])}
+        sc = scoring.score_candidate(r, tr, 0.0)
+        av = [v for v in (r["signals"].get("skill_assessment_scores") or {}).values()
+              if isinstance(v, (int, float)) and v >= 0]
+        recs.append({"attr": bool(attr_fn(r)), "id": r["candidate_id"], "score": sc["final"],
+                     "domain_evidence": sc["components"]["domain_evidence"],
+                     "experience_band": sc["components"]["experience_band"],
+                     "assessment": statistics.mean(av) if av else None})
+    rate = lambda sub: (100 * sum(x["attr"] for x in sub) / len(sub)) if sub else 0.0
+    by_score = sorted(recs, key=lambda x: -x["score"])
+    sel = set(top_ids)
+    decomp = {}
+    for sig in ("domain_evidence", "experience_band", "assessment"):
+        elig = [x for x in recs if x[sig] is not None]
+        decomp[sig] = {"n": len(elig), "top100_rate": rate(sorted(elig, key=lambda x: -x[sig])[:100])}
+    return {"eligible": len(recs), "base_rate": rate(recs),
+            "by_merit_rank": {k: rate(by_score[:k]) for k in (100, 250, 500, 1000)},
+            "submitted_top": rate([x for x in recs if x["id"] in sel]),
+            "by_signal_top100": decomp}
 
 
 def main():
@@ -145,12 +163,20 @@ def main():
     print(format_report(audit(pool, top_ids)))
     if args.residual:
         g = merit_gradient(pool, _top_tier, top_ids)
-        print("\n[residual] tier-1 rate controlling for the (tier-blind) merit signal:")
-        print(f"  base rate (all {g['eligible']} eligible): {g['base_rate']:.1%}")
+        print(f"\n[residual] tier-1 rate vs the merit signal (base {g['base_rate']:.1f}%, "
+              f"{g['eligible']} eligible):")
         for k, v in g["by_merit_rank"].items():
-            print(f"  top-{k} by signal score: {v:.1%}")
-        print(f"  submitted top-100: {g['submitted_top']:.1%}  "
-              f"(matches top-100-by-merit => skew is merit-mediated, not model-injected)")
+            print(f"  top-{k} by full signal score: {v:.1f}%")
+        print(f"  submitted top-100: {g['submitted_top']:.1f}%  "
+              f"(ranker adds nothing BEYOND its own features - but see decomposition)")
+        d = g["by_signal_top100"]
+        print("\n[leakage] tier-1 rate in top-100 ranked by EACH signal in isolation:")
+        print(f"  domain_evidence (CV-text)        : {d['domain_evidence']['top100_rate']:.1f}%")
+        print(f"  experience_band (objective yoe)  : {d['experience_band']['top100_rate']:.1f}%")
+        print(f"  assessment score (objective test): {d['assessment']['top100_rate']:.1f}% "
+              f"(over {d['assessment']['n']} with assessments)")
+        print("  => if the CV-text signal concentrates tier-1 but objective tenure does not,"
+              "\n     the CV-text feature partially absorbs the proxy (included-variable bias).")
 
 
 if __name__ == "__main__":
