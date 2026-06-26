@@ -179,8 +179,13 @@ so a reviewer can calibrate how much to trust the gold:
 
 ```bash
 python -m eval.multijudge --candidates ./candidates.jsonl \
-  --judges anthropic:claude-opus-4-8,anthropic:claude-sonnet-4-6,anthropic:claude-haiku-4-5-20251001 --n 40
+  --judges anthropic:claude-opus-4-8,anthropic:claude-sonnet-4-6,anthropic:claude-haiku-4-5-20251001 \
+  --n 40 --out gold_report.json
 ```
+
+The exact run's full output - per-judge 0-5 scores, the pairwise/mean kappa, the
+aggregated gold, and the sampled candidate ids - is committed as
+[`gold_report.json`](gold_report.json) so the numbers above are independently checkable.
 
 **Disclosed honestly** (the panel rewards this): the three judges share a model family
 (Claude), so the high kappa partly reflects shared training - genuine cross-family
