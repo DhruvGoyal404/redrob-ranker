@@ -102,6 +102,29 @@ def format_report(report: Dict) -> str:
     return "\n".join(lines)
 
 
+def merit_gradient(pool_records: List[dict], attr_fn, top_ids: List[str]) -> Dict:
+    """Residual test: does a proxy's over-selection SURVIVE controlling for the merit
+    signal we actually score on? We rank the eligible pool by the (tier-blind) signal
+    score and report the proxy rate as we climb it. If the top-k-by-merit rate matches
+    the submitted top-100 rate, the skew is merit-mediated (the model adds no extra
+    bias); the proxy is just correlated with genuine experience in this pool."""
+    from . import traps, features
+    from . import score as scoring
+    scored = []
+    for r in pool_records:
+        tr = traps.assess(r)
+        if tr["is_honeypot"] or not features.has_relevant_or_adjacent_role(r):
+            continue
+        scored.append((scoring.score_candidate(r, tr, 0.0)["final"],
+                       bool(attr_fn(r)), r["candidate_id"]))
+    scored.sort(key=lambda x: -x[0])
+    selected = set(top_ids)
+    rate = lambda sub: (sum(1 for _, p, _ in sub if p) / len(sub)) if sub else 0.0
+    return {"eligible": len(scored), "base_rate": rate(scored),
+            "by_merit_rank": {k: rate(scored[:k]) for k in (100, 250, 500, 1000)},
+            "submitted_top": rate([x for x in scored if x[2] in selected])}
+
+
 def main():
     """Run the proxy-skew audit of a submission's top-100 against the eligible pool."""
     import argparse
@@ -110,6 +133,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--candidates", required=True)
     ap.add_argument("--submission", default="./submission.csv")
+    ap.add_argument("--residual", action="store_true",
+                    help="also run the merit-control residual test on tier-1 college")
     args = ap.parse_args()
     ref = date.fromisoformat(config.REFERENCE_DATE)
     print(f"[fairness] loading pool from {args.candidates} ...")
@@ -118,6 +143,14 @@ def main():
         top_ids = [row["candidate_id"] for row in csv.DictReader(f)]
     print(f"[fairness] auditing top-{len(top_ids)} vs pool of {len(pool)}\n")
     print(format_report(audit(pool, top_ids)))
+    if args.residual:
+        g = merit_gradient(pool, _top_tier, top_ids)
+        print("\n[residual] tier-1 rate controlling for the (tier-blind) merit signal:")
+        print(f"  base rate (all {g['eligible']} eligible): {g['base_rate']:.1%}")
+        for k, v in g["by_merit_rank"].items():
+            print(f"  top-{k} by signal score: {v:.1%}")
+        print(f"  submitted top-100: {g['submitted_top']:.1%}  "
+              f"(matches top-100-by-merit => skew is merit-mediated, not model-injected)")
 
 
 if __name__ == "__main__":

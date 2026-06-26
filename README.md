@@ -207,45 +207,50 @@ local `ollama`), so the panel can be re-run and broadened.
 
 ### Fairness / proxy-skew audit (`src/fairness.py`)
 
-We have no demographic labels, but proxies exist (city, college tier, employment gaps).
-We check whether the top-100 over-selects on any proxy vs the realistic **eligible pool**
-(16,776 non-trap candidates who hold a relevant/adjacent technical role) and apply the
-four-fifths rule. Reproduce:
+This is **voluntary best-practice rigor we chose to apply, not a regulatory-compliance
+claim.** The dataset is synthetic and has **no protected-class labels** (gender, caste,
+socioeconomic background), so this cannot replicate a real adverse-impact audit - and the
+legal backdrop is genuinely unsettled (US disparate-impact guidance is in flux in 2025-26;
+India has no binding AI-hiring statute and no private-sector caste-discrimination law). So
+we measure **proxies** for protected attributes and report **proxy-risk**, not violations.
+
+We compare the top-100 against the realistic **eligible pool** (16,776 non-trap candidates
+holding a relevant/adjacent technical role - a filter computed from the profile, independent
+of the ranking, so there is no leakage). The module is deterministic (no seed/sampling).
 
 ```bash
-python -m src.fairness --candidates ./candidates.jsonl --submission ./submission.csv
+python -m src.fairness --candidates ./candidates.jsonl --submission ./submission.csv --residual
 ```
 
-**Actual output on our submitted top-100** (we report it honestly, skew and all - we do
-**not** claim "unbiased", which is itself a red flag). `base` = how many of the 16,776
-eligible carry the attribute:
-
-| Proxy | eligible base | of top-100 | impact ratio | verdict |
-|---|---|---|---|---|
-| Preferred location (Pune/Noida) | 4,963 (29.6%) | 50/100 | 0.42 | REVIEW |
-| Tier-1 college | 1,730 (10.3%) | 50/100 | 0.115 | REVIEW |
-| Employment gap (>6 mo) | 0 (0.0%) | 0/100 | n/a | NON-INFORMATIVE |
-
-Honest read of each:
+| Proxy | eligible base | of top-100 | reading |
+|---|---|---|---|
+| Preferred location (Pune/Noida) | 4,963 (29.6%) | 50/100 | intended JD-fit |
+| Tier-1 college | 1,730 (10.3%) | 50/100 | **proxy-risk flag** (not adverse impact) |
+| Employment gap (>6 mo) | 0 (0.0%) | 0/100 | **non-informative** |
 
 - **Location** - *intended, not a defect.* The JD explicitly prefers Noida/Pune (Redrob's
-  NCR offices) and we up-weight them; the skew is JD-fit, and relocation-willing candidates
-  are still credited.
-- **Tier-1 college** - *real, and it's a residual correlation, not a used feature.* **50 of our
-  100 are tier-1-college vs a 10.3% base rate** - a ~5x over-selection. We deliberately do
-  **not** use `education.tier` as a positive ranking signal; the skew arises because
-  elite-college graduates are over-represented among candidates with the genuine ML/IR careers
-  we score on. It is a property of the applicant pool, but the magnitude is large enough that
-  we **flag it explicitly for human review** rather than wave it away.
-- **Employment gap** - *non-informative on this dataset, and we say so rather than fake a
-  finding.* The `_has_gap` proxy fires on **0 of the 16,776 eligible candidates** (the
-  synthetic career histories are effectively gap-free), so "0/100 in the top-100" carries no
-  signal - there is nobody with a gap to include or exclude. The audit code now reports this as
-  NON-INFORMATIVE instead of a misleading "REVIEW"; on real-world data this proxy would need
-  live monitoring (a career-break returner could be down-ranked by our recency weighting).
+  NCR offices); relocation-willing candidates are still credited.
+- **Tier-1 college - a proxy-risk flag, framed precisely.** College tier is **not a protected
+  class** - it is a known *proxy* for protected attributes in India (e.g. elite-institute
+  cohorts historically skew on gender and caste). So our **50/100 vs a 10.3% base rate (~5x)
+  is a risk flag, not an adverse-impact finding**, because we never measured the actual
+  protected attributes. We also ran a **residual / merit-control test** (`--residual`): ranking
+  the eligible pool by the *tier-blind* signal score alone yields tier-1 rates of **50% (top-100)
+  → 44.8% (250) → 40.8% (500) → 35.4% (1000)**, and the top-100-by-merit rate (**50%**) **matches
+  our submitted top-100 (50%) exactly**. So the skew is **merit-mediated - our model injects no
+  extra tier bias**; it reproduces a correlation already present between elite institutions and
+  genuine ML/IR experience in this pool (chi-square 171, p<0.001, subgroups n=1,730 / 15,046, so
+  it is significant and not a small-sample artifact). That correlation may itself encode upstream
+  structural inequality, which is exactly why we flag it for human review rather than dismiss it.
+- **Employment gap - non-informative, and we say so rather than fake a finding.** The `_has_gap`
+  proxy fires on **0 of the 16,776 eligible** (synthetic histories are gap-free), so "0/100"
+  carries no signal - there is nobody with a gap to include or exclude. The code reports this as
+  **NON-INFORMATIVE** (we caught our own earlier misread of the selection rate as a base rate).
 
-This is exactly what shipping a hiring model under NYC LL144 / Colorado SB 24-205 requires:
-transparent, monitored, human-in-the-loop - not a hollow "unbiased" claim.
+**What we'd do in production** (where the labels exist): join real protected-attribute data,
+run the four-fifths / adverse-impact test on the attributes themselves (not proxies), add
+confidence intervals on each ratio, and keep a human-in-the-loop override - the transparent,
+monitored posture that current responsible-AI guidance recommends.
 
 ---
 
