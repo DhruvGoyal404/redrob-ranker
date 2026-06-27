@@ -294,9 +294,9 @@ monitored posture that current responsible-AI guidance recommends.
 ```
 rank.py            precompute.py        submission_metadata.yaml
 src/    config jd parse features traps retrieve score reasoning fairness
-eval/   metrics.py evaluate.py
+eval/   metrics.py evaluate.py multijudge.py
 app/    streamlit_app.py  demo_rank.py (JD-adaptive demo ranker)  presets.py
-tests/  test_traps.py test_metrics.py test_features.py test_pipeline.py test_demo_rank.py
+tests/  test_traps.py test_metrics.py test_features.py test_pipeline.py test_demo_rank.py test_multijudge.py
 data/   sample_candidates.json  demo_candidates.json  candidate_schema.json
 Dockerfile  requirements-rank.txt  Makefile  .github/workflows/ci.yml
 ```
