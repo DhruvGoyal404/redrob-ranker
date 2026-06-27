@@ -263,6 +263,19 @@ if "ranked" in st.session_state:
     m3.metric("Keyword-stuffers demoted", n_st)
     m4.metric("Honeypots demoted", n_hp)
 
+    # Demoted traps sink below the visible top-N, so surface WHERE the gate put them -
+    # this is the whole point of the inject toggle (otherwise the catch is off-screen).
+    trap_hits = [(pos, rec, trap) for pos, (rec, trap, info) in enumerate(ranked, 1)
+                 if trap["is_honeypot"] or trap["is_stuffer"]]
+    if trap_hits:
+        lines = []
+        for pos, rec, trap in trap_hits[:10]:
+            kind = "honeypot" if trap["is_honeypot"] else "keyword-stuffer"
+            lines.append(f"- `{rec['candidate_id']}` ({rec['title']}) - {kind} "
+                         f"-> **ranked #{pos} of {len(ranked)}** (bottom)")
+        st.warning("🪤 **Trap gate caught these and demoted them** - they sink below the "
+                   "list above, so they're shown here:\n" + "\n".join(lines))
+
     table = []
     for pos, (rec, trap, info) in enumerate(ranked[:top_n], 1):
         conf = demo_rank.confidence(info, trap)
@@ -296,7 +309,10 @@ if "ranked" in st.session_state:
         "ranked_candidates.csv", "text/csv")
 
     st.subheader("Why this candidate?")
-    pick = st.selectbox("Inspect a candidate", [r["candidate_id"] for r in table])
+    pick_ids = [r["candidate_id"] for r in table]
+    extra = [rec["candidate_id"] for rec, trap, info in ranked
+             if (trap["is_honeypot"] or trap["is_stuffer"]) and rec["candidate_id"] not in pick_ids]
+    pick = st.selectbox("Inspect a candidate", pick_ids + extra)
     rec, trap, info = next(x for x in ranked if x[0]["candidate_id"] == pick)
     conf = demo_rank.confidence(info, trap)
     st.markdown(f"**{rec['title']}** &nbsp;·&nbsp; {rec['yoe']:.1f} yrs &nbsp;·&nbsp; "
