@@ -285,7 +285,8 @@ if "ranked" in st.session_state:
     if st.session_state.light_mode:        # DOM table follows the light CSS overlay
         st.table(styled.hide(axis="index"))
     else:                                  # polished interactive grid in dark mode
-        st.dataframe(styled, use_container_width=True, hide_index=True)
+        st.dataframe(styled, use_container_width=True, hide_index=True,
+                     height=35 * (len(df) + 1) + 3)   # fit all N rows, no inner scroll
 
     st.download_button(
         "⬇ Download ranked CSV",
