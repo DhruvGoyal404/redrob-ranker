@@ -20,6 +20,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
+import altair as alt
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -82,6 +83,12 @@ _LIGHT_CSS = """
   [data-testid="stFileUploaderDropzone"] * {color: #1a1d24 !important;}
   [data-testid="stFileUploaderDropzone"] button {background-color: #ffffff !important;
      color: #1a1d24 !important; border: 1px solid rgba(0,0,0,.2) !important;}
+  [data-testid="stDownloadButton"] button {background-color: #ffffff !important;
+     color: #1a1d24 !important; border: 1px solid rgba(0,0,0,.2) !important;}
+  /* DOM tables (st.table) rendered in light mode - dataframe grid stays in dark mode. */
+  .stApp table {background-color: #ffffff !important; color: #1a1d24 !important;}
+  .stApp thead th, .stApp tbody th {background-color: #f0f2f6 !important; color: #1a1d24 !important;}
+  .stApp td, .stApp th {border-color: rgba(0,0,0,.10) !important;}
 """
 
 st.markdown(
@@ -196,9 +203,7 @@ with st.expander("How the ranking works"):
         "- **Demonstrated-skill quality** (proficiency x platform assessment x endorsements) and "
         "**behavioral availability** (recruiter responsiveness, recency) modulate it.\n"
         "- A **trap gate** drives honeypots (internally impossible profiles) and keyword-stuffers "
-        "(non-technical profiles padded with AI skills) to the bottom, regardless of keyword match.\n"
-        "- The competition `submission.csv` uses our scorer tuned to the one challenge role; this "
-        "demo is the general, role-agnostic product."
+        "(non-technical profiles padded with AI skills) to the bottom, regardless of keyword match."
     )
 
 with st.sidebar:
@@ -277,7 +282,10 @@ if "ranked" in st.session_state:
         return f"color: white; background-color: {_CONF_COLOR.get(val, '')}"
 
     styled = df.style.apply(_row_style, axis=1).map(_conf_style, subset=["confidence"])
-    st.dataframe(styled, use_container_width=True, hide_index=True)
+    if st.session_state.light_mode:        # DOM table follows the light CSS overlay
+        st.table(styled.hide(axis="index"))
+    else:                                  # polished interactive grid in dark mode
+        st.dataframe(styled, use_container_width=True, hide_index=True)
 
     st.download_button(
         "⬇ Download ranked CSV",
@@ -295,18 +303,34 @@ if "ranked" in st.session_state:
     c1, c2 = st.columns([3, 2])
     with c1:
         st.markdown("**What drove the score** (each in 0-1)")
-        drivers = {"JD relevance": info["jd_relevance"], "  · semantic": info["semantic"],
-                   "  · BM25 keyword": info["bm25"], "skill trust": info["skill_trust"],
+        drivers = {"JD relevance": info["jd_relevance"], "semantic": info["semantic"],
+                   "BM25 keyword": info["bm25"], "skill trust": info["skill_trust"],
                    "experience fit": info["experience_band"]}
-        st.bar_chart(pd.Series(drivers, name="signal"))
+        _light = st.session_state.light_mode
+        _axis = "#1a1d24" if _light else "#d6d9e0"
+        chart = (
+            alt.Chart(pd.DataFrame({"signal": list(drivers), "value": list(drivers.values())}))
+            .mark_bar(color="#7cc4fa")
+            .encode(
+                x=alt.X("value:Q", scale=alt.Scale(domain=[0, 1]),
+                        axis=alt.Axis(title=None, labelColor=_axis,
+                                      gridColor="rgba(128,128,128,.18)")),
+                y=alt.Y("signal:N", sort=None, axis=alt.Axis(title=None, labelColor=_axis)))
+            .properties(height=210, background="#ffffff" if _light else "transparent")
+            .configure_view(strokeWidth=0))
+        st.altair_chart(chart, use_container_width=True)
     with c2:
         st.markdown("**Multipliers**")
-        st.dataframe(pd.DataFrame([
+        mult = pd.DataFrame([
             {"factor": "availability", "x": round(info["availability"], 3)},
             {"factor": "honeypot" if trap["is_honeypot"] else
                        "stuffer" if trap["is_stuffer"] else "trap gate",
              "x": 0.001 if trap["is_honeypot"] else 0.05 if trap["is_stuffer"] else 1.0},
-        ]), hide_index=True)
+        ])
+        if st.session_state.light_mode:
+            st.table(mult.set_index("factor"))
+        else:
+            st.dataframe(mult, hide_index=True)
         st.metric("Final score", round(info["final"], 4))
 else:
     st.info("Pick a role (or paste a JD) and hit **Rank candidates**.")
