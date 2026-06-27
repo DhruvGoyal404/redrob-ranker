@@ -21,6 +21,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -50,6 +51,11 @@ _CONF_COLOR = {"High": "#1b5e20", "Moderate": "#7a5c00", "Low": "#5a1e1e", "Excl
 def get_model():
     from sentence_transformers import SentenceTransformer
     return SentenceTransformer(config.EMBED_MODEL, device="cpu")
+
+
+@st.cache_data(show_spinner=False)
+def _embed(texts):
+    return get_model().encode(list(texts), normalize_embeddings=True, convert_to_numpy=True)
 
 
 def synthetic_stuffer():
@@ -114,17 +120,13 @@ def load_records(uploaded, inject_stuffer):
     return [parse.normalize(r, REF) for r in raws]
 
 
-def run_ranking(records, jd_text, use_semantic):
+def run_ranking(records, jd_text):
     narratives = [r["narrative"] for r in records]
-    doc_emb = jd_emb = None
-    if use_semantic:
-        try:
-            model = get_model()
-            doc_emb = model.encode(narratives, normalize_embeddings=True, convert_to_numpy=True)
-            jd_emb = model.encode([jd_text], normalize_embeddings=True, convert_to_numpy=True)
-        except Exception:
-            st.warning("Semantic embeddings need PyTorch, which is not installed on this "
-                       "lightweight host. Ranking with BM25 + the signal scorer instead.")
+    try:                                    # full hybrid: BM25 + dense bge-small (PyTorch)
+        doc_emb, jd_emb = _embed(tuple(narratives)), _embed((jd_text,))
+    except Exception:                       # graceful fallback if the model can't load
+        doc_emb = jd_emb = None
+        st.warning("Embedding model unavailable - ranking with BM25 + the signal scorer.")
     idx, dense_norm = retrieve.shortlist(narratives, jd_text, doc_emb, jd_emb, size=len(records))
     rows = []
     for i in idx:
@@ -141,11 +143,10 @@ st.title("🧭 Redrob Intelligent Candidate Ranker")
 st.caption("Senior AI Engineer - Founding Team | evidence-based ranking, not keyword matching")
 
 st.info(
-    "**Note:** this hosted demo runs a lightweight **BM25 + signal-scorer** mode by default "
-    "(free 1 GB hosting can't load PyTorch). The submitted `submission.csv` was generated "
-    "offline with the **full hybrid (BM25 + dense embeddings)** pipeline, so the exact order "
-    "here can differ slightly from the submission. Tick *Use semantic embeddings* in the "
-    "sidebar to run the full pipeline (slower).", icon="ℹ️")
+    "**This demo runs the full hybrid pipeline live** - BM25 + dense `bge-small` embeddings "
+    "fused with RRF, then the 7-component signal scorer + trap gate - the same pipeline that "
+    "produced the submission. Edit the JD below and re-rank to see the semantic match respond. "
+    "(First run loads the embedding model, ~30 s.)", icon="🧭")
 
 with st.sidebar:
     st.header("How it works")
@@ -157,11 +158,6 @@ with st.sidebar:
         "4. **Grounded reasoning** - facts from the profile + confidence + concerns."
     )
     st.divider()
-    use_semantic = st.checkbox(
-        "Use semantic embeddings (bge-small)", value=False,
-        help="Off by default for reliability on free 1 GB hosting. Turn on to add the "
-             "dense layer (loads PyTorch, heavier). The full ranker still runs via "
-             "BM25 + the signal scorer when off.")
     inject_stuffer = st.checkbox(
         "Inject a keyword-stuffer", value=False,
         help="Adds one HR-Manager-with-every-AI-skill profile so you can watch the "
@@ -177,9 +173,9 @@ with st.sidebar:
 jd_text = st.text_area(
     'Target role we rank for - the challenge\'s "Senior AI Engineer, Founding Team" JD',
     PRESETS[DEFAULT_PRESET], height=160)
-st.caption("Our signal scorer is tuned to this role's must-haves - that's the task. (Editing "
-           "the JD shifts only the optional semantic layer when it's enabled; the core ranking "
-           "targets this role.)")
+st.caption("Edit the JD and re-rank - the dense semantic-match component responds. Because we "
+           "score *demonstrated evidence*, not raw keyword overlap, the order shifts thoughtfully "
+           "rather than swinging on cosmetic wording (a pure keyword-matcher would swing).")
 
 if st.button("⚡ Rank candidates", type="primary"):
     records = load_records(uploaded, inject_stuffer)
@@ -187,7 +183,7 @@ if st.button("⚡ Rank candidates", type="primary"):
         st.error("No candidates loaded. Upload a sample or add data/sample_candidates.json.")
         st.stop()
     with st.spinner(f"Ranking {len(records)} candidates ..."):
-        st.session_state.ranked = run_ranking(records, jd_text, use_semantic)
+        st.session_state.ranked = run_ranking(records, jd_text)
 
 # ---- results render OUTSIDE the button block so widgets below stay interactive ----
 if "ranked" in st.session_state:

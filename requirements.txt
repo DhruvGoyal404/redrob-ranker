@@ -1,12 +1,10 @@
-# Dependencies for the ranking pipeline, the eval harness, and the Streamlit demo.
-#
-# Intentionally LIGHT (no torch / sentence-transformers) and LOOSELY pinned so the
-# hosted demo resolves cleanly on free 1 GB hosting (Streamlit Community Cloud).
-# rank.py and the default demo run on BM25 + the signal scorer and never import
-# torch. The offline embedding precompute needs the heavy deps -> install those
-# from requirements-precompute.txt. Exact, reproducible pins for the ranking step
-# live in requirements-rank.txt (used by the Docker image).
-
+# Full dependencies: the ranking pipeline + eval harness + the Hugging Face Spaces demo.
+# This is what the live demo (Hugging Face Spaces, which supports PyTorch) installs.
+# The minimal CPU-only RANKING subset (no torch) used by the Docker image is in
+# requirements-rank.txt; test-only deps are in requirements-dev.txt.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+sentence-transformers>=2.2
 streamlit>=1.30
 pandas>=2.0
 numpy>=1.24,<3

@@ -126,7 +126,7 @@ Without the `artifacts` mount it still produces a valid BM25-only ranking. `make
 ### Tests
 
 ```bash
-pip install -r requirements.txt -r requirements-dev.txt   # pytest lives in requirements-dev.txt
+pip install -r requirements-rank.txt -r requirements-dev.txt   # minimal deps + pytest
 python -m pytest -q   # trap detection, ranking metrics, word-boundary matching, pipeline smoke
 ```
 

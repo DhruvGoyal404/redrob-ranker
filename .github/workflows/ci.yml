@@ -17,10 +17,10 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install dependencies (from requirements files - proves a clean clone works)
+      - name: Install dependencies (minimal ranking + test deps - no torch needed for tests)
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt -r requirements-dev.txt
+          pip install -r requirements-rank.txt -r requirements-dev.txt
 
       - name: Compile all sources
         run: python -m py_compile rank.py precompute.py src/*.py eval/*.py
