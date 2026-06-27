@@ -165,11 +165,10 @@ def run_ranking(records, jd_text):
 
 
 # ============================================================================== UI
-_spacer, _toggle = st.columns([0.85, 0.15])
+_spacer, _toggle = st.columns([0.94, 0.06])
 with _toggle:
-    _label = "☀️  Light" if not st.session_state.light_mode else "🌙  Dark"
-    if st.button(_label, help="Switch between light and dark theme",
-                 use_container_width=True):
+    _icon = "☀️" if not st.session_state.light_mode else "🌙"
+    if st.button(_icon, help="Switch between light and dark theme"):
         st.session_state.light_mode = not st.session_state.light_mode
         st.rerun()
 
