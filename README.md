@@ -106,6 +106,10 @@ gracefully to a BM25-only ranking so the pipeline always runs.
 
 > **Data note.** `candidates.jsonl` is not committed (464 MB). Drop the file from the
 > hackathon bundle into the repo root, then run the commands above.
+>
+> **Submission file.** `rank.py` writes a CSV (above). The portal expects an Excel file,
+> so the validated `submission.csv` is exported unchanged to **`paradise0211.xlsx`** (same
+> rows, same order) and that is the file uploaded. The CSV is the reproducible source of truth.
 
 ### Reproduce via Docker (offline, CPU-only)
 

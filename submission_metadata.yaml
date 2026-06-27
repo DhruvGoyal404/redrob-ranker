@@ -26,6 +26,8 @@ github_repo: "https://github.com/DhruvGoyal404/redrob-ranker"
 sandbox_link: "https://huggingface.co/spaces/agent-dg21/redrob-ranker"
 
 reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv"
+# Portal upload is paradise0211.xlsx - the validated submission.csv exported to XLSX
+# (same rows/order) because the portal requires Excel. The CSV is the reproducible source.
 
 # ============================================================================
 # Compute environment (ranking step)
