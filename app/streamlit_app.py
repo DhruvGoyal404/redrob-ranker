@@ -211,7 +211,7 @@ with st.sidebar:
     inject_stuffer = st.toggle(
         "Inject a keyword-stuffer", value=False,
         help="Adds one HR-Manager-with-every-AI-skill profile to show the trap gate demote it.")
-    top_n = st.slider("Results to show", 5, 50, 15)
+    top_n = st.slider("Results to show", 5, 100, 15)
     uploaded = st.file_uploader("Use your own candidates (.json / .jsonl)",
                                 type=["json", "jsonl"])
     st.caption("Empty = the bundled 50-profile sample.")
