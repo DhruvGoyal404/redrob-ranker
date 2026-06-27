@@ -1,0 +1,12 @@
+# Default look for the live demo: a clean dark theme (most people prefer it). The
+# in-app sun/moon button toggles a light overlay. Streamlit reads this at startup.
+[theme]
+base = "dark"
+primaryColor = "#ff4b4b"
+backgroundColor = "#0e1117"
+secondaryBackgroundColor = "#171c28"
+textColor = "#e6e9ef"
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false

@@ -46,16 +46,34 @@ if not SAMPLE.exists():
     SAMPLE = _ROOT / "data" / "sample_candidates.json"
 _CONF_COLOR = {"High": "#155e3b", "Moderate": "#7a5c00", "Low": "#6e2222", "Excluded": "#43306e"}
 
-st.markdown("""
-<style>
+# Dark is the default (set in .streamlit/config.toml, read at startup). The top-right
+# 🌙/☀️ button flips this flag and we paint a light overlay over Streamlit's dark base -
+# Streamlit can't swap its base theme at runtime, so a CSS overlay is the clean way.
+st.session_state.setdefault("light_mode", False)
+
+_BASE_CSS = """
   #MainMenu, footer {visibility: hidden;}
   div[data-testid="stToolbar"] {visibility: hidden; height: 0;}
   .block-container {padding-top: 2.2rem; max-width: 1180px;}
   h1 {font-weight: 800; letter-spacing: -0.5px;}
   div[data-testid="stMetricValue"] {font-size: 2rem;}
   section[data-testid="stSidebar"] {border-right: 1px solid rgba(255,255,255,.06);}
-</style>
-""", unsafe_allow_html=True)
+"""
+
+_LIGHT_CSS = """
+  .stApp, [data-testid="stHeader"] {background-color: #ffffff;}
+  .stApp, .stApp p, .stApp label, .stApp li, .stApp h1, .stApp h2, .stApp h3,
+  [data-testid="stMetricValue"], [data-testid="stMetricLabel"],
+  [data-testid="stMarkdownContainer"] {color: #1a1d24 !important;}
+  section[data-testid="stSidebar"] {background-color: #f0f2f6 !important;
+     border-right: 1px solid rgba(0,0,0,.08) !important;}
+  [data-testid="stExpander"], .stTextArea textarea,
+  [data-baseweb="select"] > div {background-color: #f6f8fb !important; color: #1a1d24 !important;}
+"""
+
+st.markdown(
+    f"<style>{_BASE_CSS}{_LIGHT_CSS if st.session_state.light_mode else ''}</style>",
+    unsafe_allow_html=True)
 
 
 @st.cache_resource(show_spinner=False)
@@ -147,6 +165,14 @@ def run_ranking(records, jd_text):
 
 
 # ============================================================================== UI
+_spacer, _toggle = st.columns([0.85, 0.15])
+with _toggle:
+    _label = "☀️  Light" if not st.session_state.light_mode else "🌙  Dark"
+    if st.button(_label, help="Switch between light and dark theme",
+                 use_container_width=True):
+        st.session_state.light_mode = not st.session_state.light_mode
+        st.rerun()
+
 st.title("🧭 Redrob Intelligent Candidate Ranker")
 st.markdown("Rank candidates for **any role** by *evidence of the right work* and relevance to "
             "the job description - with keyword-trap detection and a grounded reason for every pick.")
