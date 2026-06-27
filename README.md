@@ -54,15 +54,17 @@ streamlit run app/streamlit_app.py
 
 ## Architecture
 
-```mermaid
-flowchart TD
-    A[candidates.jsonl] -->|src/parse.py: stream-parse + normalize| B
-    B[Trap / validity gate<br/>src/traps.py] -->|honeypots to bottom, stuffers penalized| C
-    C[Hybrid retrieval<br/>src/retrieve.py] -->|BM25 + dense bge-small, fused by RRF k=60| D
-    D[Signal scorer<br/>src/score.py] -->|7 weighted components x availability/location/disqualifier mods| E
-    E[Grounded reasoning<br/>src/reasoning.py] -->|facts + confidence + honest concern + rank-standing| F
-    F[submission.csv] -->|validate_submission.py| G[Valid top-100]
-```
+**System architecture** — offline embedding precompute feeding the CPU-only online ranking pipeline:
+
+![System architecture diagram](diagrams/architecturediagram.png)
+
+**Module structure** (class diagram):
+
+![Module class diagram](diagrams/classdiagrams.png)
+
+**Use cases**:
+
+![Use case diagram](diagrams/usecasediagram.png)
 
 ### The scorer (transparent, defensible weights - `src/config.py`)
 
