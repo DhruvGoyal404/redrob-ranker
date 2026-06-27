@@ -205,10 +205,18 @@ if "ranked" in st.session_state:
     n_hp = sum(1 for _, t, _ in ranked if t["is_honeypot"])
     n_st = sum(1 for _, t, _ in ranked if t["is_stuffer"])
 
+    rels = [info["jd_relevance"] for _, t, info in ranked
+            if not (t["is_honeypot"] or t["is_stuffer"])]
+    max_rel = max(rels) if rels else 1.0
+    n_strong = sum(1 for r in rels if r >= 0.55 * max_rel)   # within 55% of the best fit
+
     st.divider()
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Candidates scored", len(ranked))
-    m2.metric("Shown", min(top_n, len(ranked)))
+    m2.metric("Strong fits for this role", n_strong,
+              help="Non-trap candidates whose relevance to THIS job description is within 55% "
+                   "of the best match - it changes as you switch roles (a deeper talent pool "
+                   "for some roles than others).")
     m3.metric("Keyword-stuffers demoted", n_st)
     m4.metric("Honeypots demoted", n_hp)
 
