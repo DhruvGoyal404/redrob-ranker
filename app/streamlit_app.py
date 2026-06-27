@@ -173,18 +173,22 @@ with st.sidebar:
                                 type=["json", "jsonl"])
     st.caption("Empty = the bundled 50-profile sample.")
 
-# ---- Role / JD selector (the dropdown loads a preset; the text box is fully editable) ----
-names = list(PRESETS)
+# ---- Role / JD selector: pick a preset OR "Custom" to paste your own; box is editable ----
+CUSTOM = "✏️  Custom - paste your own JD"
+names = [CUSTOM] + list(PRESETS)
 st.session_state.setdefault("jd_text", PRESETS[DEFAULT_PRESET])
 left, right = st.columns([1, 2])
 with left:
-    sel = st.selectbox("Role", names, key="preset_select")
+    sel = st.selectbox("Role  ·  or pick Custom →", names,
+                       index=names.index(DEFAULT_PRESET), key="preset_select")
     if st.session_state.get("_last_preset") != sel:
         st.session_state._last_preset = sel
-        st.session_state.jd_text = PRESETS[sel]
+        st.session_state.jd_text = "" if sel == CUSTOM else PRESETS[sel]
     go = st.button("⚡ Rank candidates", type="primary", use_container_width=True)
 with right:
-    st.text_area("Job description (edit freely, then re-rank)", key="jd_text", height=190)
+    st.text_area("Job description  ·  edit this, or pick **Custom** to paste any role",
+                 key="jd_text", height=190,
+                 placeholder="Paste any job description here, then hit Rank candidates...")
 jd_text = st.session_state.jd_text
 
 if go:
