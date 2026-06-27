@@ -23,7 +23,7 @@ team_members:
 # Code and reproducibility
 # ============================================================================
 github_repo: "https://github.com/DhruvGoyal404/redrob-ranker"
-sandbox_link: "https://redrob-rankers-indiaruns.streamlit.app/"
+sandbox_link: "https://huggingface.co/spaces/agent-dg21/redrob-ranker"
 
 reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv"
 

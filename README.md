@@ -20,20 +20,18 @@ AI keywords into their skills list.
 
 ## The magic moment (live demo)
 
-**Sandbox:** https://redrob-rankers-indiaruns.streamlit.app/ (Streamlit Community Cloud)
+**Sandbox:** https://huggingface.co/spaces/agent-dg21/redrob-ranker (Hugging Face Spaces, Docker)
 
-Paste a JD → drop in a candidate sample → watch a ranked, **explained** shortlist
-appear, each row with a confidence tag, the specific evidence behind it, honest
-concerns, and any trap flags. Then open a candidate to see the full per-component
-score breakdown.
+Edit the target JD → (optionally inject a stuffer) → watch a ranked, **explained**
+shortlist appear, each row with a confidence tag, the specific evidence behind it, honest
+concerns, and any trap flags. Then open a candidate to see the full per-component score
+breakdown.
 
-> **Demo vs submission - read this.** The hosted demo defaults to a lightweight
-> **BM25 + signal-scorer** mode because free 1 GB hosting can't load PyTorch (a banner
-> in the app says so). The submitted `submission.csv` was generated **offline with the
-> full hybrid (BM25 + dense embeddings)** pipeline, so the exact order in the demo can
-> differ slightly from the submission. Tick *Use semantic embeddings* in the demo to run
-> the full pipeline. Locally, `streamlit run app/streamlit_app.py` with an `artifacts/`
-> cache present reproduces the hybrid order.
+> **The demo runs the full hybrid pipeline live** - BM25 + dense `bge-small` embeddings
+> fused with RRF, then the 7-component signal scorer + trap gate - the same pipeline that
+> produced `submission.csv`. We host on Hugging Face Spaces (Docker, CPU) because it
+> supports PyTorch; the first run loads the embedding model (~30 s). Editing the JD shifts
+> the dense semantic-match component, so the ranking responds.
 
 ```bash
 streamlit run app/streamlit_app.py
