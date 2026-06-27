@@ -14,9 +14,9 @@ candidates.jsonl.gz
 artifacts/*
 !artifacts/.gitkeep
 
-# The actual submission CSV is a build output; regenerate via rank.py.
+# submission.csv = transient rank.py output; .xlsx = portal export. Both rebuildable.
+# paradise0211.csv (the final ranked top-100) IS committed as result evidence.
 submission.csv
-paradise0211.csv
 paradise0211.xlsx
 
 artifacts.tgz
