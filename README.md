@@ -54,7 +54,7 @@ streamlit run app/streamlit_app.py
 
 ## Architecture
 
-**System architecture** — offline embedding precompute feeding the CPU-only online ranking pipeline:
+**System architecture** - offline embedding precompute feeding the CPU-only online ranking pipeline:
 
 ![System architecture diagram](diagrams/architecturediagram.png)
 

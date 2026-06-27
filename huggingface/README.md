@@ -9,10 +9,10 @@ pinned: false
 license: mit
 ---
 
-# Redrob Intelligent Candidate Ranker — live demo
+# Redrob Intelligent Candidate Ranker - live demo
 
 Evidence-based AI candidate ranker for the India Runs (Redrob) Track-1 challenge.
-This Space runs the **full hybrid pipeline live** — BM25 + dense `bge-small` embeddings
+This Space runs the **full hybrid pipeline live** - BM25 + dense `bge-small` embeddings
 fused with RRF, then a 7-component signal scorer + trap gate, with grounded reasoning.
 
 Paste/edit the target JD, hit **Rank candidates**, and inspect the per-candidate score
