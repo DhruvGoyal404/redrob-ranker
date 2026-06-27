@@ -22,16 +22,19 @@ AI keywords into their skills list.
 
 **Sandbox:** https://huggingface.co/spaces/agent-dg21/redrob-ranker (Hugging Face Spaces, Docker)
 
-Edit the target JD → (optionally inject a stuffer) → watch a ranked, **explained**
-shortlist appear, each row with a confidence tag, the specific evidence behind it, honest
-concerns, and any trap flags. Then open a candidate to see the full per-component score
-breakdown.
+Pick a role (or paste any JD) → the shortlist re-ranks live, each row with a confidence
+tag, a grounded one-line justification, a "JD match" score, and trap flags. Switch from
+*Senior AI Engineer* to *Computer Vision* / *Backend* / *Data Analyst* and the right
+candidate rises to the top. Inject a keyword-stuffer to watch the trap gate sink it. Open
+any candidate for the score breakdown (JD relevance / skill quality / experience / availability).
 
-> **The demo runs the full hybrid pipeline live** - BM25 + dense `bge-small` embeddings
-> fused with RRF, then the 7-component signal scorer + trap gate - the same pipeline that
-> produced `submission.csv`. We host on Hugging Face Spaces (Docker, CPU) because it
-> supports PyTorch; the first run loads the embedding model (~30 s). Editing the JD shifts
-> the dense semantic-match component, so the ranking responds.
+> **Two rankers, disclosed honestly.** The **live demo** (`app/demo_rank.py`) is a *general,
+> JD-adaptive* product: relevance to the typed JD - dense `bge-small` embeddings + BM25,
+> running live on Hugging Face Spaces (Docker/CPU, which supports PyTorch; first run loads the
+> model ~30 s) - drives the order, modulated by role-agnostic skill quality + availability and
+> gated by the trap detector. The **competition `submission.csv`** (`rank.py`) uses our signal
+> scorer *tuned to the one challenge role* and is unchanged by the demo. Both share the trap
+> gate, evidence reading, and embeddings; the demo shows the machinery generalizes to any role.
 
 ```bash
 streamlit run app/streamlit_app.py
@@ -289,9 +292,9 @@ monitored posture that current responsible-AI guidance recommends.
 rank.py            precompute.py        submission_metadata.yaml
 src/    config jd parse features traps retrieve score reasoning fairness
 eval/   metrics.py evaluate.py
-app/    streamlit_app.py  presets.py
-tests/  test_traps.py test_metrics.py test_features.py test_pipeline.py
-data/   sample_candidates.json  candidate_schema.json
+app/    streamlit_app.py  demo_rank.py (JD-adaptive demo ranker)  presets.py
+tests/  test_traps.py test_metrics.py test_features.py test_pipeline.py test_demo_rank.py
+data/   sample_candidates.json  demo_candidates.json  candidate_schema.json
 Dockerfile  requirements-rank.txt  Makefile  .github/workflows/ci.yml
 ```
 

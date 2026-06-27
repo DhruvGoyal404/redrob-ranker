@@ -1,19 +1,18 @@
 """
-Redrob Ranker - live sandbox demo.
+Redrob Intelligent Candidate Ranker - live product demo.
 
-The magic moment first: pick or paste a job description, drop in (or use the
-bundled) candidate sample, and watch a ranked, explained shortlist appear - each
-row with a confidence tag, the specific evidence behind it, honest concerns, and
-trap flags. A side panel shows how many honeypots and keyword-stuffers were caught
-and demoted, and you can inject a stuffer to watch it sink.
+A general "rank candidates for any role" engine: pick or paste a job description and a
+ranked, explained shortlist appears - relevance to the JD (dense bge-small embeddings +
+BM25) drives the order, modulated by demonstrated-skill quality and behavioral
+availability, and gated by a trap detector that demotes honeypots and keyword-stuffers.
+Every pick carries a confidence tag and a grounded one-line justification.
 
-This runs the SAME pipeline as rank.py (src/*), just on a small sample. Embeddings
-are optional here (this is the sandbox, not the constrained ranking path).
-Deploy target: Streamlit Community Cloud.
+The ranking here (app/demo_rank.py) is JD-ADAPTIVE so switching roles re-ranks visibly.
+The competition submission (rank.py) uses our scorer tuned to the one challenge role and
+is unchanged by this demo.
 """
 import os
 os.environ.setdefault("USE_TF", "0")
-os.environ.setdefault("USE_TORCH", "1")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 import json
@@ -29,22 +28,34 @@ _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
 sys.path.insert(0, str(_ROOT / "app"))
 
-from src import config, parse, traps, retrieve, reasoning
-from src import score as scoring
+from src import config, parse, traps, retrieve
 
-# JD presets live in app/presets.py. Fall back to the single challenge JD if that
-# module is unavailable for any reason, so the demo always boots.
 try:
     from presets import PRESETS, DEFAULT_PRESET
-except Exception:
+    import demo_rank
+except Exception:                                   # pragma: no cover - defensive boot
     from src.jd import JD_QUERY
-    PRESETS = {"Senior AI Engineer (challenge JD)": JD_QUERY}
-    DEFAULT_PRESET = "Senior AI Engineer (challenge JD)"
+    PRESETS = {"Senior AI Engineer (challenge role)": JD_QUERY}
+    DEFAULT_PRESET = "Senior AI Engineer (challenge role)"
+    import demo_rank
 
-st.set_page_config(page_title="Redrob Ranker", page_icon="🧭", layout="wide")
+st.set_page_config(page_title="Redrob Candidate Ranker", page_icon="🧭", layout="wide")
 REF = date.fromisoformat(config.REFERENCE_DATE)
-SAMPLE = _ROOT / "data" / "sample_candidates.json"
-_CONF_COLOR = {"High": "#1b5e20", "Moderate": "#7a5c00", "Low": "#5a1e1e", "Excluded": "#4a148c"}
+SAMPLE = _ROOT / "data" / "demo_candidates.json"   # 50-row challenge sample + role-diverse demo profiles
+if not SAMPLE.exists():
+    SAMPLE = _ROOT / "data" / "sample_candidates.json"
+_CONF_COLOR = {"High": "#155e3b", "Moderate": "#7a5c00", "Low": "#6e2222", "Excluded": "#43306e"}
+
+st.markdown("""
+<style>
+  #MainMenu, footer {visibility: hidden;}
+  div[data-testid="stToolbar"] {visibility: hidden; height: 0;}
+  .block-container {padding-top: 2.2rem; max-width: 1180px;}
+  h1 {font-weight: 800; letter-spacing: -0.5px;}
+  div[data-testid="stMetricValue"] {font-size: 2rem;}
+  section[data-testid="stSidebar"] {border-right: 1px solid rgba(255,255,255,.06);}
+</style>
+""", unsafe_allow_html=True)
 
 
 @st.cache_resource(show_spinner=False)
@@ -121,102 +132,101 @@ def load_records(uploaded, inject_stuffer):
 
 
 def run_ranking(records, jd_text):
+    """JD-adaptive ranking: dense semantic + BM25 relevance to the typed JD, modulated by
+    universal quality and gated by the trap detector (see app/demo_rank.py)."""
     narratives = [r["narrative"] for r in records]
-    try:                                    # full hybrid: BM25 + dense bge-small (PyTorch)
+    try:                                              # dense semantic relevance (PyTorch)
         doc_emb, jd_emb = _embed(tuple(narratives)), _embed((jd_text,))
-    except Exception:                       # graceful fallback if the model can't load
-        doc_emb = jd_emb = None
-        st.warning("Embedding model unavailable - ranking with BM25 + the signal scorer.")
-    idx, dense_norm = retrieve.shortlist(narratives, jd_text, doc_emb, jd_emb, size=len(records))
-    rows = []
-    for i in idx:
-        rec = records[i]
-        trap = traps.assess(rec)
-        sc = scoring.score_candidate(rec, trap, float(dense_norm[i]))
-        rows.append((rec, trap, sc))
-    rows.sort(key=lambda x: -x[2]["final"])
-    return rows
+        semantic = retrieve.dense_scores(doc_emb, jd_emb)
+    except Exception:                                 # graceful: BM25-only relevance
+        semantic = np.zeros(len(records), dtype=float)
+        st.warning("Embedding model unavailable - ranking on BM25 keyword relevance + quality.")
+    bm25 = retrieve.bm25_scores(narratives, jd_text)
+    traps_list = [traps.assess(r) for r in records]
+    return demo_rank.rank(records, traps_list, semantic, bm25)
 
 
-# ---------------------------------------------------------------- UI
+# ============================================================================== UI
 st.title("🧭 Redrob Intelligent Candidate Ranker")
-st.caption("Senior AI Engineer - Founding Team | evidence-based ranking, not keyword matching")
+st.markdown("Rank candidates for **any role** by *evidence of the right work* and relevance to "
+            "the job description - with keyword-trap detection and a grounded reason for every pick.")
 
-st.info(
-    "**This demo runs the full hybrid pipeline live** - BM25 + dense `bge-small` embeddings "
-    "fused with RRF, then the 7-component signal scorer + trap gate - the same pipeline that "
-    "produced the submission. Edit the JD below and re-rank to see the semantic match respond. "
-    "(First run loads the embedding model, ~30 s.)", icon="🧭")
+with st.expander("How the ranking works"):
+    st.markdown(
+        "- **Relevance to the JD** (dense `bge-small` embeddings + BM25 keyword match) is the "
+        "primary signal - editing the role re-ranks the list.\n"
+        "- **Demonstrated-skill quality** (proficiency x platform assessment x endorsements) and "
+        "**behavioral availability** (recruiter responsiveness, recency) modulate it.\n"
+        "- A **trap gate** drives honeypots (internally impossible profiles) and keyword-stuffers "
+        "(non-technical profiles padded with AI skills) to the bottom, regardless of keyword match.\n"
+        "- The competition `submission.csv` uses our scorer tuned to the one challenge role; this "
+        "demo is the general, role-agnostic product."
+    )
 
 with st.sidebar:
-    st.header("How it works")
-    st.markdown(
-        "1. **Trap gate** - honeypots & keyword-stuffers detected and demoted.\n"
-        "2. **Hybrid retrieval** - BM25 + dense embeddings fused with RRF.\n"
-        "3. **Signal scorer** - 7 transparent components x availability/location/"
-        "disqualifier modifiers.\n"
-        "4. **Grounded reasoning** - facts from the profile + confidence + concerns."
-    )
-    st.divider()
-    inject_stuffer = st.checkbox(
+    st.subheader("Demo controls")
+    inject_stuffer = st.toggle(
         "Inject a keyword-stuffer", value=False,
-        help="Adds one HR-Manager-with-every-AI-skill profile so you can watch the "
-             "trap gate demote it.")
-    uploaded = st.file_uploader("Candidate sample (.json or .jsonl)", type=["json", "jsonl"])
-    top_n = st.slider("Show top N", 5, 50, 15)
+        help="Adds one HR-Manager-with-every-AI-skill profile to show the trap gate demote it.")
+    top_n = st.slider("Results to show", 5, 50, 15)
+    uploaded = st.file_uploader("Use your own candidates (.json / .jsonl)",
+                                type=["json", "jsonl"])
+    st.caption("Empty = the bundled 50-profile sample.")
 
-# This demo ranks for the challenge's single target role (the Senior AI Engineer JD).
-# Our signal scorer is TUNED to this role's must-haves (read from src/config.py), so we show
-# that JD honestly rather than imply the demo adapts to arbitrary roles - it does not, and
-# pretending so would be a different, weaker keyword ranker. Editing the text only shifts the
-# optional semantic-embeddings component (14% of the score), not the tuned signal scorer.
-jd_text = st.text_area(
-    'Target role we rank for - the challenge\'s "Senior AI Engineer, Founding Team" JD',
-    PRESETS[DEFAULT_PRESET], height=160)
-st.caption("Edit the JD and re-rank - the dense semantic-match component responds. Because we "
-           "score *demonstrated evidence*, not raw keyword overlap, the order shifts thoughtfully "
-           "rather than swinging on cosmetic wording (a pure keyword-matcher would swing).")
+# ---- Role / JD selector (the dropdown loads a preset; the text box is fully editable) ----
+names = list(PRESETS)
+st.session_state.setdefault("jd_text", PRESETS[DEFAULT_PRESET])
+left, right = st.columns([1, 2])
+with left:
+    sel = st.selectbox("Role", names, key="preset_select")
+    if st.session_state.get("_last_preset") != sel:
+        st.session_state._last_preset = sel
+        st.session_state.jd_text = PRESETS[sel]
+    go = st.button("⚡ Rank candidates", type="primary", use_container_width=True)
+with right:
+    st.text_area("Job description (edit freely, then re-rank)", key="jd_text", height=190)
+jd_text = st.session_state.jd_text
 
-if st.button("⚡ Rank candidates", type="primary"):
+if go:
     records = load_records(uploaded, inject_stuffer)
     if not records:
         st.error("No candidates loaded. Upload a sample or add data/sample_candidates.json.")
         st.stop()
-    with st.spinner(f"Ranking {len(records)} candidates ..."):
+    with st.spinner(f"Ranking {len(records)} candidates for this role ..."):
         st.session_state.ranked = run_ranking(records, jd_text)
 
-# ---- results render OUTSIDE the button block so widgets below stay interactive ----
+# ---- results render OUTSIDE the button block so the inspector below stays interactive ----
 if "ranked" in st.session_state:
     ranked = st.session_state.ranked
     n_hp = sum(1 for _, t, _ in ranked if t["is_honeypot"])
     n_st = sum(1 for _, t, _ in ranked if t["is_stuffer"])
 
-    m1, m2, m3 = st.columns(3)
+    st.divider()
+    m1, m2, m3, m4 = st.columns(4)
     m1.metric("Candidates scored", len(ranked))
-    m2.metric("Keyword-stuffers demoted", n_st)
-    m3.metric("Honeypots demoted", n_hp)
+    m2.metric("Shown", min(top_n, len(ranked)))
+    m3.metric("Keyword-stuffers demoted", n_st)
+    m4.metric("Honeypots demoted", n_hp)
 
     table = []
-    for pos, (rec, trap, sc) in enumerate(ranked[:top_n], 1):
-        why = reasoning.build_reasoning(rec, sc, trap, pos)
-        conf = reasoning.confidence_tag(sc, trap)
+    for pos, (rec, trap, info) in enumerate(ranked[:top_n], 1):
+        conf = demo_rank.confidence(info, trap)
+        why = demo_rank.reasoning(rec, info, trap, conf)
         flags = ("🚫 honeypot" if trap["is_honeypot"] else "") + \
                 ("  ⚠️ stuffer" if trap["is_stuffer"] else "")
-        table.append({"rank": pos, "candidate_id": rec["candidate_id"],
-                      "title": rec["title"], "yoe": rec["yoe"],
-                      "confidence": conf, "score": round(sc["final"], 3),
-                      "flags": flags.strip(), "reasoning": why})
+        table.append({"rank": pos, "candidate_id": rec["candidate_id"], "title": rec["title"],
+                      "yoe": rec["yoe"], "confidence": conf,
+                      "JD match": round(info["jd_relevance"], 3),
+                      "score": round(info["final"], 3), "flags": flags.strip(), "reasoning": why})
     df = pd.DataFrame(table)
 
     def _row_style(row):
-        bg = "background-color: rgba(120,30,30,0.35)" if row["flags"] else ""
-        return [bg] * len(row)
+        return ["background-color: rgba(120,30,30,0.35)" if row["flags"] else ""] * len(row)
 
     def _conf_style(val):
         return f"color: white; background-color: {_CONF_COLOR.get(val, '')}"
 
-    styled = (df.style.apply(_row_style, axis=1)
-              .map(_conf_style, subset=["confidence"]))
+    styled = df.style.apply(_row_style, axis=1).map(_conf_style, subset=["confidence"])
     st.dataframe(styled, use_container_width=True, hide_index=True)
 
     st.download_button(
@@ -224,22 +234,29 @@ if "ranked" in st.session_state:
         pd.DataFrame([{"candidate_id": r["candidate_id"], "rank": r["rank"],
                        "score": r["score"], "reasoning": r["reasoning"]} for r in table]
                      ).to_csv(index=False).encode("utf-8"),
-        "ranked_sample.csv", "text/csv")
+        "ranked_candidates.csv", "text/csv")
 
-    st.subheader("Why this candidate? (score breakdown)")
+    st.subheader("Why this candidate?")
     pick = st.selectbox("Inspect a candidate", [r["candidate_id"] for r in table])
-    rec, trap, sc = next(x for x in ranked if x[0]["candidate_id"] == pick)
-    st.markdown(f"**{rec['title']}** | {rec['yoe']:.1f} yrs | {rec['location']}  \n"
-                f"_{reasoning.build_reasoning(rec, sc, trap, 1)}_")
+    rec, trap, info = next(x for x in ranked if x[0]["candidate_id"] == pick)
+    conf = demo_rank.confidence(info, trap)
+    st.markdown(f"**{rec['title']}** &nbsp;·&nbsp; {rec['yoe']:.1f} yrs &nbsp;·&nbsp; "
+                f"{rec.get('location', 'n/a')}  \n_{demo_rank.reasoning(rec, info, trap, conf)}_")
     c1, c2 = st.columns([3, 2])
     with c1:
-        st.markdown("**Weighted contribution per component**")
-        contrib = {k: round(config.WEIGHTS[k] * v, 4) for k, v in sc["components"].items()}
-        st.bar_chart(pd.Series(contrib, name="contribution"))
+        st.markdown("**What drove the score** (each in 0-1)")
+        drivers = {"JD relevance": info["jd_relevance"], "  · semantic": info["semantic"],
+                   "  · BM25 keyword": info["bm25"], "skill trust": info["skill_trust"],
+                   "experience fit": info["experience_band"]}
+        st.bar_chart(pd.Series(drivers, name="signal"))
     with c2:
-        st.markdown("**Multiplicative modifiers**")
-        st.dataframe(pd.DataFrame([{"modifier": k, "x": round(v, 3)}
-                                   for k, v in sc["modifiers"].items()]), hide_index=True)
-        st.metric("Final score", round(sc["final"], 4))
+        st.markdown("**Multipliers**")
+        st.dataframe(pd.DataFrame([
+            {"factor": "availability", "x": round(info["availability"], 3)},
+            {"factor": "honeypot" if trap["is_honeypot"] else
+                       "stuffer" if trap["is_stuffer"] else "trap gate",
+             "x": 0.001 if trap["is_honeypot"] else 0.05 if trap["is_stuffer"] else 1.0},
+        ]), hide_index=True)
+        st.metric("Final score", round(info["final"], 4))
 else:
-    st.info("Pick a job description above (or paste your own) and hit **Rank candidates**.")
+    st.info("Pick a role (or paste a JD) and hit **Rank candidates**.")
