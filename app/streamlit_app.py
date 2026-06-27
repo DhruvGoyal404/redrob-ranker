@@ -58,6 +58,14 @@ _BASE_CSS = """
   h1 {font-weight: 800; letter-spacing: -0.5px;}
   div[data-testid="stMetricValue"] {font-size: 2rem;}
   section[data-testid="stSidebar"] {border-right: 1px solid rgba(255,255,255,.06);}
+  /* Theme toggle: bare sun/moon glyph - no button chrome, nudged down a touch. */
+  div.st-key-theme_toggle {margin-top: 1.6rem;}
+  div.st-key-theme_toggle button {background: transparent !important; border: none !important;
+     box-shadow: none !important; padding: 0 !important; min-height: 0 !important;
+     font-size: 1.6rem; line-height: 1;}
+  div.st-key-theme_toggle button:hover, div.st-key-theme_toggle button:focus,
+  div.st-key-theme_toggle button:active {background: transparent !important;
+     border: none !important; box-shadow: none !important;}
 """
 
 _LIGHT_CSS = """
@@ -69,6 +77,11 @@ _LIGHT_CSS = """
      border-right: 1px solid rgba(0,0,0,.08) !important;}
   [data-testid="stExpander"], .stTextArea textarea,
   [data-baseweb="select"] > div {background-color: #f6f8fb !important; color: #1a1d24 !important;}
+  [data-testid="stFileUploaderDropzone"] {background-color: #e9edf3 !important;
+     border: 1px dashed rgba(0,0,0,.25) !important;}
+  [data-testid="stFileUploaderDropzone"] * {color: #1a1d24 !important;}
+  [data-testid="stFileUploaderDropzone"] button {background-color: #ffffff !important;
+     color: #1a1d24 !important; border: 1px solid rgba(0,0,0,.2) !important;}
 """
 
 st.markdown(
@@ -168,7 +181,7 @@ def run_ranking(records, jd_text):
 _spacer, _toggle = st.columns([0.94, 0.06])
 with _toggle:
     _icon = "☀️" if not st.session_state.light_mode else "🌙"
-    if st.button(_icon, help="Switch between light and dark theme"):
+    if st.button(_icon, help="Switch between light and dark theme", key="theme_toggle"):
         st.session_state.light_mode = not st.session_state.light_mode
         st.rerun()
 

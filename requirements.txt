@@ -5,7 +5,7 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch
 sentence-transformers>=2.2
-streamlit>=1.30
+streamlit>=1.39
 pandas>=2.0
 numpy>=1.24,<3
 rank-bm25>=0.2.2
